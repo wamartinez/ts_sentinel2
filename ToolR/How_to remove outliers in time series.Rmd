@@ -2,8 +2,21 @@
 title: "Analysis of outliers in the training data COS by using NDVI over the time"
 author: "William Martinez"
 date: "30 de octubre de 2018"
-output: html_document
+fig_caption: TRUE
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: true
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+```
+
 
 ##Introduction
 
