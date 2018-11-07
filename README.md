@@ -13,4 +13,4 @@ So far, these are part of some results of this thesis:
 
 2. Land cover classification using sentinel 2 Imagery: a glance of how to work under static modellling. [here]( https://williamamartinez.github.io/ts_sentinel2/ToolPython/Classification_static_models.html)
 
-3. Graphics of final accuracies using static classification over original images and composites [here] (https://williamamartinez.github.io/ts_sentinel2/ToolR/Graphic_Accuracies.html)
+3. Graphics of final accuracies using static classification over original images and composites [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/Graphic_Accuracies.html)
