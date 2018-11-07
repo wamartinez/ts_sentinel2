@@ -10,6 +10,10 @@ output:
     toc_depth: 4
     toc_float: true
 ---
+<style>
+body {
+text-align: justify}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -288,7 +292,7 @@ trajectories =  function(data_st){
 }
 ```
 
-##Agricultural areas
+### Agricultural areas
 
 ```{r}
 query_dataset2 = dataset2[dataset2$CLASS_NAME %in% c('Rice_fields',
@@ -305,7 +309,7 @@ ggplot(trajectories_agricultur, aes(x=day, y=median, color = id)) +
   facet_grid(id~.)+ theme(legend.position="none")
 ```
 
-Large part of the variability is visible between October and November of the year. Therefore, we expect the classifiers work better for this specific periods in which the trajectories depict differences in their tendency and their dispersions. Besides that, it is important to highlight tree more aspects. 
+Large part of the variability is visible between June and October of the year. Therefore, we expect the classifiers work better for this specific periods in which the trajectories depict differences in their tendency and their dispersions. Besides that, it is important to highlight tree more aspects. 
 
 Firstly, rice fields trajectories are the only ones in all the dataset that represent strong differences respect the other trajectories. In this sense, we expect that this imply good accuracy in its classification viewed from time series analysis, however, it looks a bad scenary for the rest of the classes in which trend is almost the same and their variance continue being high. Therefore, this will imply for the next attempt to account with a different index vegetation that can highly more difference between the classes that have vegetation.
 
@@ -313,7 +317,7 @@ Secondly, for herbaceus periodic trajectories, we account with a strong dispersi
 
 Finally, the third aspect is related with the trajectory of the land cover type called Orchards. Orchards belong to sparsaly vegetated areas whose spectral signatures can be similar to classes such as non - vegetated or herbaceus permanent, so that we will probably have problems in its classification.
 
-##Forest and seminatural areas
+###Forest and seminatural areas
 
 ```{r}
 query_dataset3 = dataset2[dataset2$CLASS_NAME %in% c('Holm_and_Cork_Trees',

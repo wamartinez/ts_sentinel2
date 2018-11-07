@@ -1,0 +1,79 @@
+---
+title: "Graphics of final accuracies using static classification over original images and composites"
+author: "William Martinez"
+date: "3 de noviembre de 2018"
+fig_caption: TRUE
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: true
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+# Overall accuracies per image
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+```
+
+The following graphic presents a overview of the overall accuracies for the classification of 15 classes of COS per imagery available suring 2017; implementing random forest classifier. I used two versions of the COS training data according with the analysis of NDVI over time, one without cleaning process and another implementing the interquantile range analysis to remove outliers in the dataset. Although the graphics are done by using ggplot2 in R, the results are derived from a set of scripts done in python (visit ToolPython). Each classification account with 13 bands B02: Blue; B03:Green; B04: Red, B05,B06,B07: Vegetation red edge; B08: NIR; B11, B12: SWIR; B8A: Narrow NIR; NDVI; ZDEM; ZSLOPE.
+
+
+```{r}
+path_accuracies = "D:\\TESISMASTER\\csv\\accuracies_staticmodel.txt"
+#reading files
+df_accuracies =  read.table(path_accuracies,sep = "\t", header = TRUE)
+output1= NULL
+for (k in unique(df_accuracies$Model)){
+  index  = which(df_accuracies$Model == k)
+  df_accuracies_query = df_accuracies[index,-1]
+  output0 = NULL
+  for(i in 1:dim(df_accuracies_query)[2]){
+    name_column = colnames(df_accuracies_query)[i]
+    year = substr(name_column,4,7)
+    month = substr(name_column,8,9)
+    day = substr(name_column,10,11)
+    fecha = as.character(as.Date(paste0(year,"/",month,"/",day), "%Y/%m/%d"))
+    df0 = data.frame(k, letters[i] ,fecha,df_accuracies_query[,i])
+    output0 = rbind(output0, df0)
+  }
+  output1 =  rbind(output1,output0)
+}
+colnames(output1) = c("Model","id","time","Accuracy")
+```
+
+As I expected in the analysis of NDVI over the time the periods with better accuracies are between June and October since large part of the visible NDVI variability was during these months. Therefore, this graphic becomes in the baseline for this thesis. That is, any better accuracy that can imply the integration of the temporal domain must be compared with the present graphic. 
+
+```{r}
+# library
+library(ggplot2)
+# grouped boxplot
+ggplot(output1, aes(x=time, y=Accuracy, fill=Model)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    geom_boxplot()
+```
+
+# Overall accuracies per composites
+
+The composites are also part of the scripts in Python that I am still documenting. However, the construction of this images are based in maximum NDVI per season. That is, from a set of images that belong for example to winter -each one composed by 10 spectral bands besides NDVI- it is extracted the maximum NDVI, so that, the pixel with the maximun NDVI is the reference in time to retrieve the rest of the pixels with spectral domain. In the same frame of the previous implementation using individual images we have the following accuracies.
+
+```{r}
+path_accuracies_comp = "D:\\TESISMASTER\\csv\\accuracies_staticmodel_composites.txt"
+#reading files
+df_accuracies_comp =  read.table(path_accuracies_comp,sep = "\t", header = TRUE)
+df_accuracies_comp$Time = factor(df_accuracies_comp$Time, c("Spring","Summer",'Autumn','Winter'))
+# library
+library(ggplot2)
+# grouped boxplot
+ggplot(df_accuracies_comp, aes(x=Time, y=Accuracy, fill=Model)) + 
+    geom_boxplot()
+```
+
+The best accuracies implementing composites are for the  season of Autumn. An early comparition based in overall accuracies show a better performance in the individual classification. However, it is still too early to say what is better than other when I have not evaluated the performance of the accuracies per land cover types. 
