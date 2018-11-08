@@ -77,3 +77,46 @@ ggplot(df_accuracies_comp, aes(x=Time, y=Accuracy, fill=Model)) +
 ```
 
 The best accuracies implementing composites are for the  season of Autumn. An early comparition based in overall accuracies show a better performance in the individual classification. However, it is still too early to say what is better than other when I have not evaluated the performance of the accuracies per land cover types. 
+
+### Accuracies Agricultural areas
+
+
+```{r}
+file_class_composites = 'D:\\TESISMASTER\\csv\\Accuracies_perclass_composites.txt'
+df_accuracies_pclass =  read.table(file_class_composites,sep = "\t", header = TRUE)
+df_accuracies_pclass$Treatment = factor(df_accuracies_pclass$Treatment, c("Raw","Composite"))
+df_accuracies_pclass$Season = factor(df_accuracies_pclass$Season , 
+                                     c("Best","Autumn","Summer","Winter"))
+#graphic
+queary_df = df_accuracies_pclass[df_accuracies_pclass$Landcover %in% c("Rice fields", "Herbaceus-periodic","Vineyard","Orchards.","Olive-trees","Herbaceous-permanent"),]
+ggplot(queary_df, aes(x=Season, y=Accuracy, fill=Treatment)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_boxplot() +
+  facet_wrap(~ Landcover)
+```
+
+
+### Forest and seminatural areas
+
+```{r}
+#graphic
+queary_df = df_accuracies_pclass[df_accuracies_pclass$Landcover %in% c("Holm and cork trees", "Eucalytus trees","Coniferous trees","Natural-herbaceous"),]
+ggplot(queary_df, aes(x=Season, y=Accuracy, fill=Treatment)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_boxplot() +
+  facet_wrap(~ Landcover)
+```
+
+
+### Water bodies and urban areas
+
+```{r}
+#graphic
+queary_df = df_accuracies_pclass[df_accuracies_pclass$Landcover %in% c("Sealed", "Non_vegetated","Wetlands","Water"),]
+ggplot(queary_df, aes(x=Season, y=Accuracy, fill=Treatment)) + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_boxplot() +
+  facet_wrap(~ Landcover)
+```
+
+
