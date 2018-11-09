@@ -76,7 +76,7 @@ ggplot(df_accuracies_comp, aes(x=Time, y=Accuracy, fill=Model)) +
     geom_boxplot()
 ```
 
-The best accuracies implementing composites are for the  season of Autumn. An early comparition based in overall accuracies show a better performance in the individual classification. However, it is still too early to say what is better than other when I have not evaluated the performance of the accuracies per land cover types. 
+The best accuracies implementing composites are for the  season of Autumn. An early comparition based in overall accuracies show a better performance in the individual classification. 
 
 ### Accuracies Agricultural areas
 
