@@ -86,7 +86,7 @@ file_class_composites = 'D:\\TESISMASTER\\csv\\Accuracies_perclass_composites.tx
 df_accuracies_pclass =  read.table(file_class_composites,sep = "\t", header = TRUE)
 df_accuracies_pclass$Treatment = factor(df_accuracies_pclass$Treatment, c("Raw","Composite"))
 df_accuracies_pclass$Season = factor(df_accuracies_pclass$Season , 
-                                     c("Best","Autumn","Summer","Winter"))
+                                     c("Best","Summer","Autumn","Winter"))
 #graphic
 queary_df = df_accuracies_pclass[df_accuracies_pclass$Landcover %in% c("Rice fields", "Herbaceus-periodic","Vineyard","Orchards.","Olive-trees","Herbaceous-permanent"),]
 ggplot(queary_df, aes(x=Season, y=Accuracy, fill=Treatment)) + 
