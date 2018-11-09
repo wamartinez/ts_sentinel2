@@ -127,12 +127,13 @@ def write_geotiff(fname, data, geo_transform, projection):
     """Create a GeoTIFF file with the given data."""
     driver= gdal.GetDriverByName('GTiff')
     rows, cols= data.shape
-    dataset= driver.Create(fname, cols, rows, 1, gdal.GDT_Float32)
+    dataset= driver.Create(fname, cols, rows, 1, gdal.GDT_Float32 ) #  gdal.GTD_Byte
     dataset.SetGeoTransform(geo_transform)
     dataset.SetProjection(projection)
     band= dataset.GetRasterBand(1)
     band.WriteArray(data)
     dataset=None #Close the file
+    print("done")
 
 #function connected to extract raster to point
 def update_shapefile(x_shapefile,x_raster,x,y,fc,field_cl):
