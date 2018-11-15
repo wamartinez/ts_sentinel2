@@ -14,3 +14,8 @@ So far, these are part of some results of this thesis:
 2. Land cover classification using sentinel 2 Imagery: a glance of how to work under static modellling. [here]( https://williamamartinez.github.io/ts_sentinel2/ToolPython/Classification_static_models.html)
 
 3. Graphics of final accuracies using static classification over original images and composites [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/Graphic_Accuracies.html)
+
+Some notes:
+
+Next attempts will involve both a better distribution of the images per seasons and lower amount of labels to classify. On the one hand, corcening the the imagery per season, I would like to reorganize the imagery for the composites according with the climate variability and the particular time frame of seasons in Portugal; for this I will use the package trendgrid (large spatio temporal variability of precipitation and temperature using netcdf files). On he other hand, labels have been static in this analysis so that they must consider also temporal variability. 
+
