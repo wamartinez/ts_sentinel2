@@ -1,8 +1,9 @@
+#    /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Winter
 #======================================================================
 #This script attempts to set baseline of the standart static approach
 #======================================================================
-# --train_path /home/user/Documents/TESISMASTER/VECTOR/Analysis_outliers/Model_None
-# --raster_path /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Winter
+# --train_path /home/user/Documents/TESISMASTER/VECTOR/Analysis_outliers/Model_IQR
+# --raster_path /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_pca
 #======================================================================
 #Parsing information
 #======================================================================

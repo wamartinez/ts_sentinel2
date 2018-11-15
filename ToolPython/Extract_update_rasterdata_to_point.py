@@ -5,8 +5,8 @@ import lulc
 #This task probabily will be done later, there i not too much time to rewrite everything
 #After checking the previous proposal I think is better to add the raster by bands, tiff does not support file hevier than 4 gb
 #WEELL, finally the decision is to add values by band and update chapefile, so I will leave this version without modificacion, so I will create a new version
-# --input /home/user/Documents/TESISMASTER/VECTOR/Analysis_Outliers_Composites/training_samples.shp
-# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/NDVI_Composites
+# --input /home/user/Documents/TESISMASTER/VECTOR/Training_data_espectral_time/Autumn/IM_20170709/training_samples.shp
+# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Autumn/IM_20170709
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser()
@@ -60,13 +60,20 @@ print("Ready coordinates")
 
 #=====================================
 
-list_path_raster = [os.path.join(args.raster,w) for w in os.listdir(args.raster)]
+list_path_raster = [os.path.join(args.raster,w) for w in os.listdir(args.raster) if w.endswith('.jp2') or w.endswith('.tiff')]
 list_path_raster.sort()
+
+#creating name columns according with the name of the files
+
+list_names_raster = [w.split('.')[0].split("_")[-2] for w in os.listdir(args.raster) if w.endswith('.jp2') or w.endswith('.tiff')]
+list_names_raster.sort()
+print(list_names_raster)
+
 print("list of rasters")
 print(list_path_raster)
-l = 1
+l = 0
 for j in list_path_raster:
-    field_cl = 'NDVI_' + str(l)
+    field_cl = 'PC_' + list_names_raster[l]
     lulc.update_shapefile(args.input,j,x,y,fc,field_cl)
-    print("Done raster: ", l )
+    print("Done raster: ", list_names_raster[l] )
     l = l + 1

@@ -1,9 +1,9 @@
 #This script attempt to calculate NDVI
 #I will assue that the raster has the red and the Nir in the third and seventh bands respectively
 
-# --input_red  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Spring/IM_20170115/IM_20170115_B04_10m.jp2
-# --input_nir /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Spring/IM_20170115/IM_20170115_B08_10m.jp2
-# --output /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Spring/IM_20170115/IM_20170115_NDVI_10m.tiff
+# --input_red  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Test/PC1_B_2.tiff
+# --input_nir /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Test/PC1_B_6.tiff
+# --output    /hom/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Test/IM_composite_NDVI_10m.tiff
 
 
 import argparse

@@ -3,6 +3,9 @@ from osgeo import gdal, ogr
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 def create_mask_from_vector (vector_data_path, cols, rows, geo_transform, projection, target_value=1):
     """Rasterize the given vector(wrapper for gdal.RasterizeLayer)."""
@@ -180,3 +183,61 @@ def update_shapefile(x_shapefile,x_raster,x,y,fc,field_cl):
     del value
     fe = None
     print('done')
+
+
+
+#===================================================================
+#function pca
+#===================================================================
+
+def pca_calculator(w):
+    driver = ogr.GetDriverByName('ESRI Shapefile')
+    datasource = driver.Open(w)
+    layer = datasource.GetLayer()
+    proj = layer.GetSpatialRef()
+    layer_defn = layer.GetLayerDefn()
+    count_field = layer_defn.GetFieldCount()
+
+    #schema: name the of the columns
+    schema = []
+    for k in range(0,count_field):
+        f_field = layer_defn.GetFieldDefn(k)
+        schema.append(f_field.name)
+    #importing features in a list
+    f2 = []
+    #Importing features
+    for feat in layer:
+        f1 = []
+        for i in range(0, count_field):
+            field = feat.GetField(i)
+            f1.append(field)
+        #second part
+        f2.append(f1)
+
+    #converting list to dataframe
+    df=pd.DataFrame(f2,columns=schema)
+    #==============================
+    #PCA Analysis
+    #==============================
+    #subsettin only variables
+    features = schema[2:]
+    df_x = df.loc[:,features]
+    #separating labels
+    df_y = df.loc[:,"CLASS_NAME"]
+    #scaling data frame x
+    df_x_scale = StandardScaler().fit_transform(df_x)
+
+    #setting number of components to retrieve
+    pca = PCA(n_components = 2)
+    #calculating pca
+    pc_t = pca.fit_transform(df_x_scale)
+    print(pc_t)
+    print(pc_t.shape)
+    #defining new data frame with first two composites
+    df_x_pc = pd.DataFrame(data = pc_t, columns= ["pc1","pc2"])
+    #concatening prirncipal components with explicative variables
+    df_pc = pd.concat([df_y,df_x_pc], axis = 1)
+    datasource = None
+    return df_pc
+
+#=====================================================================
