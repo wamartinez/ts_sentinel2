@@ -15,7 +15,6 @@ So far, these are part of some results of this thesis:
 
 3. Graphics of final accuracies using static classification over original images and composites [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/Graphic_Accuracies.html)
 
-Some notes:
+4. Animation NDVI and training COS in Portugal [here](https://stsentinel.shinyapps.io/animation_ndvi_r/)
 
-Next attempts will involve both a better distribution of the images per seasons and lower amount of labels to classify. On the one hand, corcening the the imagery per season, I would like to reorganize the imagery for the composites according with the climate variability and the particular time frame of seasons in Portugal; for this I will use the package trendgrid (large spatio temporal variability of precipitation and temperature using netcdf files). On he other hand, labels have been static in this analysis so that they must consider also temporal variability. 
 
