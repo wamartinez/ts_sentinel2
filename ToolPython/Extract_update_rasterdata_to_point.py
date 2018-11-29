@@ -5,8 +5,8 @@ import lulc
 #This task probabily will be done later, there i not too much time to rewrite everything
 #After checking the previous proposal I think is better to add the raster by bands, tiff does not support file hevier than 4 gb
 #WEELL, finally the decision is to add values by band and update chapefile, so I will leave this version without modificacion, so I will create a new version
-# --input /home/user/Documents/TESISMASTER/VECTOR/Training_data_espectral_time/Autumn/IM_20170709/training_samples.shp
-# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Autumn/IM_20170709
+# --input /home/user/Documents/TESISMASTER/VECTOR/Analysis_Outliers_Composites/training_samples_composites.shp
+# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_2turn/temp_ndvi
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser()
@@ -73,7 +73,7 @@ print("list of rasters")
 print(list_path_raster)
 l = 0
 for j in list_path_raster:
-    field_cl = 'PC_' + list_names_raster[l]
+    field_cl = list_names_raster[l]
     lulc.update_shapefile(args.input,j,x,y,fc,field_cl)
     print("Done raster: ", list_names_raster[l] )
     l = l + 1

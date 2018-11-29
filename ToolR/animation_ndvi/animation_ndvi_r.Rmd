@@ -1,0 +1,223 @@
+---
+title: "Animation ndvi Portugal 2017"
+author: "William Martinez"
+date: "November 20, 2018"
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: true
+runtime: shiny
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(kableExtra)
+```
+
+In the frame of a multitemporal analysis of composites of sentinel 2 imagery, I want to document how important is to make dynamic the training data in the classification. According with the explorative analysis, we visualize trajectories of ndvi, so that we  perceived how some land cover with vegetation tend to show different ndvi ranges depending on the time of the year. However, we also saw how some trajectories of ndvi for some classes, such as water or no- vegetation, that suppose to be static over the year, depict strong variance and ranges of ndvi that teoritically are not supported. Well, I will go through different examples showing why we are having these unusual patterns by using 4 compositions of NDVI for 4 different seasons of the year. I expect ndvi can be determinant in the rename of some labels, and therefore, we can define a new workflow for the multitemporal classification.
+
+
+### Estuaries 
+
+My first example here is Estuaries. I remember that the water labels were subcategorized into eight classes and then filtered into three classes that I think are the best representation of class water. Therefore, in the next figure we can visualize how ndvi differs in space and time in the conection of Tagus river with the atlantic Ocean. In this sense, I made a query only conssidering sample points of Estuaries, so that, we can visualize how some points do not overlap with water during certain times of the year. Since the near infrared reflects less than the red for water, I defined points intersected by pixels with ndvi lower than zero as water samples and larger as temporal samples of non - vegetation.
+
+```{r estuaries, echo=FALSE, message=FALSE}
+library("shinyWidgets")
+library(tibble)
+library(sf)
+library(rgdal)
+library(raster)
+library(ggplot2)
+#seasons of the imagery
+se = c("Spring","Summer","Autumn", "Winter")
+seasons = factor(se, levels = se)
+
+inputPanel(
+      sliderTextInput(
+               inputId = "a",
+               label = "Season range slider:",
+               choices = seasons,
+               selected = seasons[1])
+)
+
+renderPlot({
+  #selection
+  ind = which(input$a==seasons)
+  #shapefile
+  shape_file = "./shp/water_class2.shp"
+  points_water = sf::read_sf(shape_file)
+  #generate plots based on input$a 
+  dir_raster = "./data"
+  file_raster = list.files(dir_raster)
+  r = vector("list",4)
+  j = 1
+  for(i in file_raster){
+    if(endsWith(i, "clip1.tif"))
+    {
+      r[[j]] = raster(paste0(dir_raster,"/",i))
+      j = j + 1
+    }
+  }
+  selec_col = points_water[,input$a]
+  st_geometry(selec_col) = NULL
+  colnames(selec_col) = c("axis")
+  color_points = bg = c("red", "blue")[unclass(as.factor(selec_col$axis))]
+  plot(r[[ind]],zlim = c(-1, 1), main = paste0("NDVI over Estuaries, date: ", input$a))
+  plot(points_water[,1], add= TRUE, pch = 16, col= color_points , cex = 0.5)
+  legend("topright",legend=c("non-vegetated", "water") ,col=c("red","blue"),pch=16,bty="n",cex=1,pt.cex=1)
+})
+```
+
+
+### Herbaceus periodic 
+
+
+```{r herbaceus, echo=FALSE, message=FALSE}
+inputPanel(
+      sliderTextInput(
+               inputId = "b",
+               label = "Season range slider:",
+               choices = seasons,
+               selected = seasons[1])
+)
+
+renderPlot({
+  #selection
+  ind = which(input$b==seasons)
+  #shapefile
+  shape_file = "./shp/HerbaceusPeriodic.shp"
+  points_hp = sf::read_sf(shape_file)
+  #generate plots based on input$a 
+  dir_raster = "./data"
+  file_raster = list.files(dir_raster)
+  r1 = vector("list",4)
+  j = 1
+  for(i in file_raster){
+    if(endsWith(i, "clip2.tif"))
+    {
+      r1[[j]] = raster(paste0(dir_raster,"/",i))
+      j = j + 1
+    }
+  }
+  selec_col = points_hp[,"CLASS_NAME"]
+  st_geometry(selec_col) = NULL
+  colnames(selec_col) = c("axis")
+  color_points = bg = c("red", "blue")[unclass(as.factor(selec_col$axis))]
+  plot(r1[[ind]],zlim = c(0, 1), main = paste0("NDVI over Herbaceous periodic, date: ", input$b))
+  plot(points_hp[,1], add= TRUE, pch = 16, col= color_points , cex = 1)
+  legend("topright",legend=c("Irrigated", "Non_rirrigated") ,col=c("red","blue"),pch=16,bty="n",cex=1,pt.cex=1)
+})
+
+```
+
+### Multitemporal training dataset
+
+```{r stdataset}
+file = "./shp/training_samples_cleaned.shp"
+#file = "./shp/training_samples_composites_cleaned.shp"
+data_ndvi = sf::read_sf(file)
+#classes with vegetation
+classes_names = c("Coniferous_trees", "Eucalyptus_trees","Holm_and_Cork_Trees","Bushes_and_shrubs", "Herbaceous_periodic",
+                  "Natural_Herbaceous","Herbaceous_permanet","Rice_fields","Water","Wetlands","Sealed","Non_vegetated")
+#query over previous class
+query_veget = data_ndvi[data_ndvi$CLASS_NAME %in% classes_names[1:6] ,-1]
+#geometry
+geo = st_geometry(query_veget)
+st_geometry(query_veget) =  NULL
+#function to separate non-vegetation
+vegetation = function(v, cl){
+  y = v
+  tr = 0.3
+  y[v >= tr] = cl[v >= tr]
+  y[v < tr] = "Non_vegetated"
+  return(y)
+}
+list_veget = lapply(query_veget[,-1], vegetation, cl = query_veget$CLASS_NAME)
+df_veget = data.frame(list_veget)
+#Merging geometry to data frame
+st_geometry(df_veget) = geo
+
+#merging rest of the classes
+df_rest = data_ndvi[!(data_ndvi$CLASS_NAME %in% classes_names[1:6]),-1]
+geo2 = st_geometry(df_rest)
+st_geometry(df_rest) = NULL
+labeldf = function(x, cl) x[] = cl
+list_rest = lapply(df_rest[,-1],labeldf, cl = df_rest$CLASS_NAME)
+df_rest2 = data.frame(list_rest)
+st_geometry(df_rest2) = geo2
+#merging
+df_final = rbind(df_veget,df_rest2)
+#Names of the colums
+names_images =  c('20170115', "20170405", "20170525", "20170604", "20170614",'20170704', '20170709', '20170714', '20170724', '20170729', '20170803', '20170808', '20170813', '20170818', '20170902', '20170907', '20170912', '20170922', '20170927', '20171002', '20171012', '20171022', '20171027', '20171111', '20171116', '20171121', '20171201', '20171216', '20171221',"geometry")
+colnames(df_final) = names_images
+#writing objet sf as shapefile
+#file_out = './shp/temporal_dataset_composites.shp'
+#sf::write_sf(df_final, dsn = file_out)
+```
+
+
+
+
+```{r stdataset2}
+#removing geometry
+st_geometry(df_final) = NULL
+#Days of the images
+day_shoot = c("2017/01/15", "2017/04/05", "2017/05/25", "2017/06/04", "2017/06/14",
+              "2017/07/04", "2017/07/09", "2017/07/14", "2017/07/24", "2017/07/29",
+              "2017/08/03", "2017/08/08", "2017/08/13", "2017/08/18", "2017/09/02" ,
+              "2017/09/07", "2017/09/12", "2017/09/22", "2017/09/27", "2017/10/02",
+              "2017/10/12", "2017/10/22", "2017/10/27", "2017/11/11", "2017/11/16",
+              "2017/11/21", "2017/12/01","2017/12/16", "2017/12/21")
+output = NULL
+list_df_final = lapply(df_final,function(x) table(x))
+j = 1
+for(i in list_df_final){
+  dft = data.frame(day_shoot[j],i)
+  colnames(dft) = c("Date","Class","freq")
+  output = rbind(output, dft)
+  j = j + 1
+}
+#defining position of the text
+output$halffreq = output$freq *0.5
+output$pos = 1
+for(i in output$Date){
+  ind1 = which(output$Date == i)
+  out1 = output[ind1,]
+  out0 = 0
+  for(j in classes_names){
+    ind2 = which(out1$Class == j)
+    out0 = out0 + out1[ind2,3]
+    output[ind1[ind2],5] = dim(df_final)[1] - (out0 - output[ind1[ind2],4])
+  }
+}
+
+output$Class = factor(output$Class, classes_names)
+#colors in the graphic
+colors_classes = c("green4", "green3", "green1", "springgreen3", "springgreen1", "darkolivegreen3", "turquoise","plum2","blue2","royalblue2", "gray", "goldenrod")
+names(colors_classes) = classes_names
+
+ggplot(data=output, aes(x=Date, y=freq, fill= Class)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_bar(stat="identity") +
+  scale_fill_manual("Classes", values = colors_classes) +
+  geom_text(aes(label = freq,y = pos),size = 2)
+
+```
+
+
+
+
+
+
+
+
+
+

@@ -1,7 +1,7 @@
 #the attempt of this script is to extract the bands per time and calculate
 #the principal components, so that I can update one shapefile with only the
 #first principalper time
-#I will call the files accorsing with the season
+#I will call the files accorsing with the season   @
 # --data_folder /home/user/Documents/TESISMASTER/VECTOR/Training_data_espectral_time/Summer
 # --output  /home/user/Documents/TESISMASTER/VECTOR/Training_data_espectral_time/Result/training_samples.shp
 

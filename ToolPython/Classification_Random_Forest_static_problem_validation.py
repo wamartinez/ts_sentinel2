@@ -2,8 +2,8 @@
 #======================================================================
 #This script attempts to set baseline of the standart static approach
 #======================================================================
-# --train_path /home/user/Documents/TESISMASTER/VECTOR/Analysis_outliers/Model_IQR
-# --raster_path /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_pca
+# --train_path /home/user/Documents/TESISMASTER/ts_sentinel2/ToolR/animation_ndvi/shp/temporal_dataset.shp
+# --raster_path /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Images/summer_temp
 #======================================================================
 #Parsing information
 #======================================================================
@@ -25,30 +25,30 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print('start processing')
 
-
-
 #=============================
 #Importing imagery from folder
 #=============================
 
 file_DEM = "/home/user/Documents/TESISMASTER/ZDEM/ZDEM_10m.tiff"
 file_Slope = "/home/user/Documents/TESISMASTER/ZDEM/ZSLOPE_10m.tiff"
-
-list_folder = [os.path.join(args.raster_path,i) for i in os.listdir(args.raster_path)]
+#importing path of the raster files
+list_folder = [i for i in os.listdir(args.raster_path)]
 list_folder.sort()
+
 
 for k in list_folder:
     print('processing: ', k)
     #Creating fie with results of the validation
-    file = os.path.join(k,"validation_modelNone.txt")
+    k0 = os.path.join(args.raster_path,k)
+    file = os.path.join(k0,"validation_model_st.txt")
     f= open(file,"w+")
     #importing path of the rasters
-    list_raster = [os.path.join(k,i) for i in os.listdir(k) if i.endswith('.tiff') or i.endswith('.jp2')]
+    list_raster = [os.path.join(k0,i) for i in os.listdir(k0) if i.endswith('.tiff') or i.endswith('.jp2')]
     list_raster.append(file_DEM)
     list_raster.append(file_Slope)
     list_raster.sort()
     #names of the raster_dataset
-    list_label_raster = [i.split('_')[-2] for i in os.listdir(k) if i.endswith('.tiff') or i.endswith('.jp2')]
+    list_label_raster = [i.split('_')[-2] for i in os.listdir(k0) if i.endswith('.tiff') or i.endswith('.jp2')]
     list_label_raster.append('Z_DEM')
     list_label_raster.append('Z_Slope')
     list_label_raster.sort()
@@ -67,29 +67,17 @@ for k in list_folder:
         bands_data.append(band.ReadAsArray())
         print('Band: ', i, ' is imported')
         raster_dataset = None
-
     #stacking layers
     bands_data = np.dstack(bands_data)
     rows, cols, n_bands= bands_data.shape
 
-    #Importing shapefiles
-    print('Calling shapefiles')
-    shapefiles = [os.path.join(args.train_path,i) for i in os.listdir(args.train_path) if i.endswith('.shp')]
-    shapefiles.sort()
-    print(shapefiles)
-    labels_classes = [i.split('.')[0] for i in os.listdir(args.train_path) if i.endswith('.shp')]
-    labels_classes.sort()
-    print(labels_classes)
-    #Rasterizing the training data
-    labeled_pixels= lulc.vectors_to_raster(shapefiles, rows, cols, gt , proj)
-
-
-    #selecting training data,
-    is_train= np.nonzero(labeled_pixels)
-    training_labels = labeled_pixels[is_train]
-    training_samples = bands_data[is_train]
-    print(training_samples.shape)
-
+    #Importing shapefile
+    #this shapefile has columns representing the lebel for each image, so I must open it and match the the name of the column with the image in process
+    print('Calling shapefile')
+    field= k[3::]
+    df0 = lulc.import_training(args.train_path, gt, field, bands_data, list_label_raster)
+    print("Imported")
+    bands_data = None
     #=======================
     # Modelling
     #=======================
@@ -97,16 +85,18 @@ for k in list_folder:
     # stratiffing by class
     #=======================
     print('Start validation')
-
+    training_samples = df0.loc[:,list_label_raster].values
+    training_labels = df0.label.values
+    #lopp to import different trainign data
     for l in range(0,20):
         accuracy = []
         tr, tes = lulc.stratified_sampling(training_labels,prob = (0.7,0.3))
         #train
         train_samples = training_samples[tr,]
-        train_labels = training_labels[tr,]
+        train_labels = training_labels[tr]
         #test
         test_samples = training_samples[tes,]
-        test_labels = training_labels[tes,]
+        test_labels = training_labels[tes]
         #========================
         #Decision tree Classifier
         #========================

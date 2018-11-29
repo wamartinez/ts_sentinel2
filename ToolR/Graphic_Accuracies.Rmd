@@ -27,7 +27,8 @@ The following graphic presents a overview of the overall accuracies for the clas
 
 
 ```{r}
-path_accuracies = "D:\\TESISMASTER\\csv\\accuracies_staticmodel.txt"
+path_accuracies = "/home/user/Documents/TESISMASTER/csv/accuracies_staticmodel.txt"
+#path_accuracies = "/home/user/Documents/TESISMASTER/csv/accuracies_class_passivelearning.txt"
 #reading files
 df_accuracies =  read.table(path_accuracies,sep = "\t", header = TRUE)
 output1= NULL

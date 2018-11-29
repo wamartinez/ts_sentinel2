@@ -31,6 +31,52 @@ def vectors_to_raster(file_paths, rows, cols, geo_transform, projection):
         ds=None
     return labeled_pixels
 
+#Function to extract pixel values according with shapefile
+#I am using it to create the training dataset
+
+def import_training(path_shape, gt, field, bands_data,list_label_raster):
+    driver = ogr.GetDriverByName("ESRI Shapefile")
+    data_source = driver.Open(path_shape)
+    layer = data_source.GetLayer()
+    fc = layer.GetFeatureCount()
+    proj = layer.GetSpatialRef()
+    layer_defn = layer.GetLayerDefn()
+    count_field = layer_defn.GetFieldCount()
+    #Inverse of the transformation matrix
+    inv_gt = gdal.InvGeoTransform(gt)
+    #creating empy lists where to store coordinates and labels
+    label = []
+    xt_p = []
+    yt_p = []
+    x_p = []
+    y_p = []
+    for fea in layer:
+        fl = fea.GetField(field)
+        label.append(fl)
+        pt = fea.geometry()
+        x = pt.GetX()
+        y = pt.GetY()
+        #saving coordinates in a list
+        x_p.append(x)
+        y_p.append(y)
+        #let's transform the coordinates
+        xt , yt = gdal.ApplyGeoTransform(inv_gt, x, y)
+        xt_p.append(xt)
+        yt_p.append(yt)
+    #intersecting pixels
+    #intersecting
+    value = []
+    for i in range(0,fc):
+        value.append(bands_data[int(yt_p[i]),int(xt_p[i]),:])
+    #creating a data DataFrame with the pixel values
+    df1 = pd.DataFrame(value, columns = list_label_raster)
+    #dictionary with the coordinates and labels
+    d = {"x": x_p, "y": y_p, "label": label}
+    df2 = pd.DataFrame.from_dict(d)
+    df = pd.concat([df2, df1], axis=1)
+    data_source = None
+    return df
+#========================================================
 
 def stratified_sampling(training_labels, prob):
     train_vector = []
@@ -110,7 +156,7 @@ def plot_confusion_matrix(cm, classes,
     plt.title(title)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
+    plt.xticks(tick_marks, classes, rotation=90)
     plt.yticks(tick_marks, classes)
 
     fmt = '.2f' if normalize else 'd'

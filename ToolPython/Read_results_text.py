@@ -1,5 +1,5 @@
 #This script read the files in txt format and import the text in list o numpy
-# --pathfiles /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites
+# --pathfiles /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Images
 
 
 import argparse
@@ -23,7 +23,7 @@ print(folders)
 y = {}
 w=0
 for j in folders:
-    file = os.path.join(j,'validation_modelIQR.txt')
+    file = os.path.join(j,'validation_model_st.txt')
     f = open(file, 'r')
     #read lines
     f1 =  f.readlines()
@@ -31,12 +31,13 @@ for j in folders:
     for k in f1:
         #appending lines
         #for overall accuracies
-        #x.append(float(k.split(" ")[1]))
+        x.append(float(k.split(" ")[1]))
         #for individual accuracies
-        k1 = k.split("PA:")[1]
-        k2 = k1.split(" [")[1]
-        k3 = k2.split("]")[0]
-        x.append(float(k3.split(" ")[14]))
+        #k1 = k.split("PA:")[1]
+        #k2 = k1.split(" [")[1]
+        #k3 = k2.split("]")[0]
+        #k4= k3.split(" ")[14]
+        #x.append(float(k4))
     #appending all the values
     y[name_folders[w]]  = x
     w= w + 1
@@ -44,5 +45,5 @@ for j in folders:
 df = pd.DataFrame(y)
 
 print(df)
-file_name = '/home/user/Documents/TESISMASTER/csv/accuracies_IQR_Composites_class15.csv'
+file_name = '/home/user/Documents/TESISMASTER/csv/accuracies_class_passivelearning.csv'
 df.to_csv(file_name, sep='\t')

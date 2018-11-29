@@ -1,14 +1,14 @@
-#Convert image inf sentinel 2 format to tiff format
-#We assume tha your folder dataset only cotain images
-#  --name_raster D:\TESISMASTER\IMAGES\COMPOSITIONS\IM20170927_Composition_10m.tiff
-#  --dataset D:\TESISMASTER\IMAGES\TO_PROCESS
+#I want to to make compositions with different bands, here I will import images from one folder and I will stack them.
+
+#  --name_raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions/IM_20170115_comp.tiff
+#  --dataset /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Spring/IM_20170115/images
 
 import argparse
 from osgeo import gdal
 import numpy as np
 import os
 
-#
+#parsing
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name_raster", help = "Name of the raster")
@@ -16,13 +16,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args.dataset)
 
-#Import gdal and thus the image
-#I want to import only certain images with the same spatial resolution
-#Name_images = ['B02','B03','B04','B05','B06','B07','B8A','B11','B12','DEM','NDVI','SLOPE']
-
+#NAme of the files
 list_files = [os.path.join(args.dataset,f) for f in os.listdir(args.dataset) if f.endswith('.jp2') or f.endswith('.tiff')  ]
-
+list_files.sort()
 print('proccessing',list_files)
+
 
 bands_data= []
 for f in list_files:

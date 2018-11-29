@@ -1,0 +1,61 @@
+---
+title: "Graphics of final accuracies using static classification over original images and composites"
+author: "William Martinez"
+date: "3 de noviembre de 2018"
+fig_caption: TRUE
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: true
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+# Overall accuracies per image
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+```
+
+The following graphic presents a overview of the overall accuracies for the classification of 15 classes of COS per imagery available suring 2017; implementing random forest classifier. I used two versions of the COS training data according with the analysis of NDVI over time, one without cleaning process and another implementing the interquantile range analysis to remove outliers in the dataset. Although the graphics are done by using ggplot2 in R, the results are derived from a set of scripts done in python (visit ToolPython). Each classification account with 13 bands B02: Blue; B03:Green; B04: Red, B05,B06,B07: Vegetation red edge; B08: NIR; B11, B12: SWIR; B8A: Narrow NIR; NDVI; ZDEM; ZSLOPE.
+
+
+```{r}
+#path_accuracies = "/home/user/Documents/TESISMASTER/csv/accuracies_staticmodel.txt"
+path_accuracies = "/home/user/Documents/TESISMASTER/csv/accuracies_class_passivelearning.txt"
+#Days of the images
+day_shoot = c("2017/01/15", "2017/04/05", "2017/05/25", "2017/06/04", "2017/06/14",
+              "2017/07/04", "2017/07/09", "2017/07/14", "2017/07/24", "2017/07/29",
+              "2017/08/03", "2017/08/08", "2017/08/13", "2017/08/18", "2017/09/02" ,
+              "2017/09/07", "2017/09/12", "2017/09/22", "2017/09/27", "2017/10/02",
+              "2017/10/12", "2017/10/22", "2017/10/27", "2017/11/11", "2017/11/16",
+              "2017/11/21", "2017/12/01","2017/12/16", "2017/12/21")
+#reading files
+df_accuracies =  read.table(path_accuracies,sep = "\t", header = TRUE)
+
+output = NULL
+for(i in 1:dim(df_accuracies)[2]){
+  x = df_accuracies[,i]
+  df = data.frame(day_shoot[i],x)
+  colnames(df) = c("time","OA")
+  output = rbind(output, df)
+}
+```
+
+As I expected in the analysis of NDVI over the time the periods with better accuracies are between June and October since large part of the visible NDVI variability was during these months. Therefore, this graphic becomes in the baseline for this thesis. That is, any better accuracy that can imply the integration of the temporal domain must be compared with the present graphic. 
+
+```{r}
+# library
+library(ggplot2)
+# grouped boxplot
+ggplot(output, aes(x=time, y=OA, fill="red")) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    geom_boxplot()
+```
+

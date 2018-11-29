@@ -1,0 +1,585 @@
+---
+title: "Analysis of outliers in the training data COS by using NDVI over the time"
+author: "William Martinez"
+date: "30 de octubre de 2018"
+fig_caption: TRUE
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_depth: 4
+    toc_float: true
+---
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(kableExtra)
+```
+
+
+## 1. Introduction
+
+The purpose of this vignette is to document the process of removing outliers in the data set COS in the environment of R with the aim at exploring different accuraccies that we can achieve in the classification for the year 2017. As part of the supervised classification, besides the imagery for 2017, we account with a training dataset called COS (Carta de uso e Ocupacao do solo) composed by 13000 samples categorized by different LCLU types (1000 samples each type). Since our training dataset differs in date and source of adquisition respect the imagery (labels done by interpretation of aerial imagery), we need to trace the differences between what the labels explain and what actually happens in the ground. Moreover, the dataset contains two labels: **descricao** and **CLASS_NAME**. The labels of **descrica** correspond to the level 5 of COS nomenclature. That is, use of the land cover. The label CLASS_NAME corresponds to a generalization done by the institute DGT. I will play with both labels dependending on how they match with the spectral information of the imagery.
+
+## 2. Methodology 
+
+Therefore, as first attempt to explore the ranges of NDVI per class, we recreated the NDVI for 29 images available for the year 2017 an extract the NDVI values to the 13000 points (see vignette python "NDVI compositions"). Since We expect certain homogeinity in the NDVI values per class and per time, we think that the set of those values that do not follow this trend are probably points that may change for natural or anthropogenic reasons; or simply the label is not enough representation of the area covered by the pixel.  
+
+Therefore, to measure the statistical dispersion of NDVI per class and per time we are going to use two methods, interquantile ranges and standart deviations. 
+
+
+```{r}
+library(sf)
+library(ggplot2)
+folder_path = "/home/user/Documents/TESISMASTER/VECTOR/Analysis_Outliers_Composites/training_samples_composites.shp"
+#Days of the images
+se = c("Spring","Summer","Autumn", "Winter")
+season = factor(se, levels = se)
+#reading shapefile
+dataset = sf::read_sf(folder_path)
+```
+
+
+### 2.1 Method 1: interquantile range analysis
+
+IQR method makes detection of ouliers by looking at values more than one and half times the IQR distance below the first quartil and above the third quartil. IQR analysis is attractive because it considers the median as the measurement of centrality and thus is considered resistant to outliers. The following equations shows how to calculate this range per time for especific land cover type.
+
+$$
+IQR^{t} = Q_{3}^{t} - Q_{1}^{t} 
+$$
+$$
+Limits^{t} = Q_{1}^{t} \pm  1.5*IQR^{t} 
+$$
+
+```{r}
+
+model1 =  function(x, min_x, max_x){
+  ind_t = which(x< min_x | x > max_x)
+  if(length(ind_t)!=0){
+    x[ind_t] = NA  
+  }
+  qua = quantile(x,na.rm=TRUE)
+  q25 =qua[2]
+  q75 =qua[4]
+  IQR = q75 - q25
+  limit_left = q25 - 1.5*IQR
+  limit_rigth = q75 + 1.5*IQR
+  ind = which(x<= limit_left | x >= limit_rigth | is.na(x))
+  return(ind)
+}
+```
+
+
+### 2.2 Method 2: Standard deviation analysis
+
+And alternative to interquantile range analysis is to explore the values that are at different standard deviations from the mean of the data (here two standard deviations). Standard deviation analysis is also a measurement of dispersion, however, it is problematic for not being resistant to the presence of outliers and, furthermore, it works under the assumption that data must follow certain normality.  
+
+$$
+Limits^{t} = \bar{x}^{t} \pm  n \cdot \sigma ^{t}
+$$
+
+
+```{r}
+model2 =  function(x, min_x, max_x){
+  ind_t = which(x< min_x | x > max_x)
+  if(length(ind_t)!=0){
+    x[ind_t] = NA  
+  }
+  sd_x = sd(x,na.rm = TRUE)
+  mean_x = mean(x,na.rm = TRUE)
+  limit_left = mean_x - 2*sd_x
+  limit_rigth = mean_x + 2*sd_x
+  #filter according with the threshold and central tendency criterium
+  ind = which(x < limit_left | x > limit_rigth | is.na(x))
+  return(ind)
+}
+
+```
+
+
+### 3. Implementation
+
+Well, basically the next function apply the previous methods and return a suitable dataframe for the use of ggplot2 library.
+
+```{r}
+
+df_without_outliers = function(query_dataset,
+                               methodo = c("None","model_1", "model_2"),
+                               season,min_x =-1, max_x = 1){
+  #selecting model
+  list_out = vector("list",2)
+  func_choice <- switch(methodo,
+                       'None'='None',
+                       'model_1'=model1,
+                       'model_2'=model2
+                       )
+  st_geometry(query_dataset) = NULL
+  w = NULL
+  if(is.function(func_choice)){
+    outlier_indices = apply(query_dataset,2,func_choice, min_x, max_x)
+    for(j in outlier_indices)
+    {
+      if(length(j)!= 0){
+        w = c(w,j)
+        }
+    }
+    #removing repeated values and quering only valid values
+    query_dataset_vv = query_dataset[-unique(w),]
+    list_out[[1]] = length(unique(w))
+    list_out[[2]] = unique(w)
+  }else{
+    query_dataset_vv = query_dataset
+    list_out[[1]] = 0
+    list_out[[2]] = 0
+  }
+
+  output_all = NULL
+  for(i in 1:dim(query_dataset_vv)[2])
+  {
+    trajectory = as.factor(c(1:dim(query_dataset_vv)[1]))
+    ndvi_day_output = data.frame(season[i],trajectory,query_dataset_vv[,i])
+    colnames(ndvi_day_output) = c('Season','Trajectory','NDVI')
+    output_all = rbind(output_all, ndvi_day_output)
+  }
+  list_out[[3]] = output_all
+  return(list_out)
+  #done
+}
+```
+
+## 4. Results
+
+I will perfom different cleaning data processing per class depending on how much varies the NDVI over the year 2017 and how similar is the espectral response respect what teoritically should show certain classes. 
+
+### 4.1 Rice fields
+
+The following graphic does not apply any cleanning method, therefore, this simply represents the NDVI values for rice LCLU type over the year 2017. 
+
+```{r}
+query_dataset = dataset[dataset$CLASS_NAME == "Rice_fields",c(-1,-2)]
+df = df_without_outliers(query_dataset,methodo = "None", season)
+
+#graphic
+ggplot(df[[3]], aes(x=Season)) +
+  geom_line(aes(y=NDVI, group=Trajectory, color='blue'),show.legend = FALSE) +
+  theme(axis.text=element_text(size=13)) +
+  labs(title="Time Series Rice Fields per season", 
+       subtitle=paste0("Row data"," 1000 samples, ", df[[1]], " out, ", (df[[1]]/1000)*100,"%" ), 
+       y="NDVI", 
+       color=NULL) 
+
+```
+
+With a set of trajectories in a plot that does not show any visual tendency we set out the implementation of the proposed methods to remove those outliers that can hinder the performance of the classification. 
+
+#### 4.1.1 Interquantile range analysis in rice fields
+
+Besides putting points out using the interquantile rangre analysis, I have also considered that this kind of land cover type must vary between a range of 0 and 1, this means I am also leaving points out that are beyond this range. With 33.8% of the information out, we can appreaciate a global tendency of the trajectories of NDVI for rice fields. The highest values are between june and october compared to the rest of the year. 
+
+```{r}
+df1 = df_without_outliers(query_dataset,methodo = 'model_1', season, min_x = 0, max_x = 1)
+
+#graphic
+ggplot(df1[[3]], aes(x=Season)) +
+  geom_line(aes(y=NDVI, group=Trajectory, color='red'),show.legend = FALSE) +
+  labs(title="Time Series Rice fields", 
+       subtitle=paste0("Method: IQR ± 1.5Q, from 1000 samples ", df1[[1]], " are out: ", (df1[[1]]/1000)*100,"%" ), 
+       y="NDVI", 
+       color=NULL)
+```
+
+#### 4.1.2 Mean and standart deviation analysis in rice fields
+
+Particulary for rice fields we have found that this technique leave the same 38% of the points out. Both tecniques along side the treshold of 0 and 1 for this soil type impact highly the amount of data available and this may have and impact also in the final balance of data per class in the classification. However, it is better to keep track of points that really represent the predominant land cover type overlapped by the pixel.
+
+```{r}
+df2 = df_without_outliers(query_dataset,methodo = 'model_2', season, min_x = 0, max_x = 1)
+
+#graphic
+ggplot(df2[[3]], aes(x=Season)) +
+  geom_line(aes(y=NDVI, group=Trajectory, color='red'),show.legend = FALSE) +
+  labs(title="Time Series Rice fields per season", 
+       subtitle=paste0("Method: Mean ± sd, from 1000 samples ", df2[[1]], " are out: ", (df2[[1]]/1000)*100,"%" ), 
+       y="NDVI", 
+       color=NULL) 
+
+```
+
+
+### 4.2 How this work with the rest of the classes?
+
+Assuming that we apply the interquantile range analysis for all the LCLU types (condicioned to a teoritical range of NDVI between 0 and 1), let's see how much one trajectory of NDVI differs respect another for certain levels of classification that has vegetation.
+
+```{r}
+
+classes_cl = c("Holm_and_Cork_Trees", "Bushes_and_shrubs", "Rice_fields", "Coniferous_trees", "Eucalyptus_trees",
+               "Herbaceous_permanet","Natural_Herbaceous" , "Herbaceous_periodic")
+  
+dataset2 = dataset[1,]
+for( i in classes_cl){
+  index = which(dataset$CLASS_NAME == i)
+  query_dataset_f = dataset[index,c(-1,-2)]
+  #Here everithing with trees will have a treshold range of 0.3 to 1  
+  if(i == "Holm_and_Cork_Trees" | i == "Coniferous_trees"| i == "Eucalyptus_trees"){
+    min_x = 0.3
+    max_x = 1
+  }else
+  {
+    min_x = 0
+    max_x = 1
+  }
+    
+  df = df_without_outliers(query_dataset_f,methodo = "model_2", season, min_x, max_x)
+  index2 = index[-df[[2]]]
+  dataset2 = rbind(dataset2, dataset[index2,])
+}
+#removing first column
+dataset2 = dataset2[-1,]
+```
+
+let's see first now how many samples we have per class
+```{r}
+output_df =  NULL
+for(w in classes_cl){
+  len_d1 = length(which(dataset$CLASS_NAME == w))
+  len_d2 = length(which(dataset2$CLASS_NAME == w))
+  ln_data = c(len_d1-len_d2,len_d2)
+  per_data = (ln_data/1000)*100 
+  position = c(100 - per_data[1]*0.5,per_data[2]*0.5)
+  name_data = c("Data out","New Data")
+  ldf = data.frame(w,name_data,ln_data,per_data,position)
+  output_df = rbind(output_df, ldf)
+}
+colnames(output_df) = c("Classes","Data","Len","percentage","pos")
+# Stacked barplot with multiple groups
+ggplot(data=output_df , aes(x=Classes, y=percentage, fill=Data)) +
+ theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label = paste0(percentage,"%"), y= pos))
+```
+
+
+Some classes are less impacted by the analysis than others, especially those classes which NDVI are more or less homogeneus over the year. However, let's have a look of the behavior of ndvi values over the year per class. The following script defines the limits and medians of ndvi per image and per class, so that we can visualize the ranges over the year 2017.
+
+
+```{r}
+statistics = function(x){
+  q50 = median(x,na.rm=TRUE)
+  left_limit = min(x,na.rm=TRUE)
+  rigth_limit = max(x,na.rm=TRUE)
+  res = c(q50, left_limit, rigth_limit)
+  return(res)
+  }
+
+trajectories =  function(data_st){
+  st_geometry(data_st) = NULL
+  trajectories_df = NULL
+  cl_name = c("class",colnames(data_st)[-1])
+  colnames(data_st) = cl_name
+  for(k in unique(data_st$class)){
+    index = which(data_st$class == k)
+    trajectories = apply(data_st[index,c(-1)], 2, statistics)
+    trajectories_confidence = data.frame(k,season,t(trajectories))
+    colnames(trajectories_confidence) = c('id','Season','median','lower_limit','upper_limit')
+    trajectories_df = rbind(trajectories_df,trajectories_confidence)
+  }
+  return(trajectories_df)
+}
+```
+
+
+### 4.3 Forest and seminatural areas
+
+After leaving points out according with the proposed methodology (here interquantile range) we set out to analysis again the variance and trend of classes of forest. In this sense, for the classes of forest, such as Holm and cork trees, coniferous trees and eucalyptus trees, we can see in the following graphic that they depict similarly the ndvi over the time both in variance and trend; except for Holm and cork trees where the variance over the time is lower than the rest of the classes. 
+
+```{r}
+query_dataset2 = dataset2[dataset2$CLASS_NAME %in% c('Holm_and_Cork_Trees',
+                                                   'Eucalyptus_trees',
+                                                   'Coniferous_trees') 
+                                                   ,c(-1)]
+
+trajectories_forest_sem= trajectories(query_dataset2)
+
+ggplot(trajectories_forest_sem, aes(x=Season, y = median, color = id)) + 
+  geom_line(aes(x=Season, y=median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4) +
+  facet_grid(id~.)+ theme(legend.position="none")
+```
+
+Therefore, since the range of the espectral variation over the time of these three classes are particularly the same, we may expect high confusion in their classification and therefore a multitemporal analysis per pixel not the right answer to separete this sort of classes. Probably, this escenario will imply to merge these classes in future atttempts in order to improve their discrimantion as only forest.
+
+
+### 4.4 Rice fields and Herbaceous permanent
+
+I want to highligth with the next graphic the strong differences between herbaceus permanent and rice fields trajectories of NDVI. The notable espectral difference is because rice fields is part of temporal crops that need of irrigation after the sowing stage. In this sense, we expect this class differs from the herbaceus permanent due to the moisture treatment over the crops in the period of summer.
+
+
+```{r}
+query_dataset3 = dataset2[dataset2$CLASS_NAME %in% c('Rice_fields',
+                                                   'Herbaceous_permanet') 
+                                                   ,c(-1)]
+
+trajectories_agricultur= trajectories(query_dataset3)
+
+ggplot(trajectories_agricultur, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)
+```
+
+we may have values of NDVI for rice lower than cero in escenarios where the rice fields are being irrigated, so that the the level of moisture in the plot is very high.
+
+
+### 4.5 Herbaceous Periodic
+
+THis class is composed by two signals, one that correspond to irrigated crops and onother to non- irrigated.
+
+```{r}
+query_herbaceousperiodic = dataset2[dataset2$CLASS_NAME == "Herbaceous_periodic",c(-2)]
+
+ind_irrig = which(query_herbaceousperiodic$DESCRICAO == "2.1.2.01.1 Culturas temporárias de regadio")
+ind_not_irrig = which(query_herbaceousperiodic$DESCRICAO == "2.1.1.01.1 Culturas temporárias de sequeiro")
+query_herbaceousperiodic[ind_irrig,1] = "Irrigated"  
+query_herbaceousperiodic[ind_not_irrig,1] = "Not_Irrigated"  
+
+trajectories_herbaceousperiodic= trajectories(query_herbaceousperiodic)
+
+ggplot(trajectories_herbaceousperiodic, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)
+```
+
+
+
+### 4.6 Natural herbaceus Bushes and shrubs
+```{r}
+query_naturalherbaceous_bushes = dataset2[dataset2$CLASS_NAME %in% c("Bushes_and_shrubs","Natural_Herbaceous") ,c(-1)]
+
+query_nh = trajectories(query_naturalherbaceous_bushes)
+
+ggplot(query_nh, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)
+```
+
+### 4.7 Non - vegetated
+
+Non-vegetated class tend to depict near infrared reflectance somehow larger than the red. This sligh difference turns out in low positive values of NDVI. According with the literature (cite) we may have this classs in the range of 0 and 0.3 ndvi. Let's have a look of the NDVI signal over the year 2017 and evaluate what percentage of the information meets this criterion.
+
+```{r}
+dataset_nv = dataset[dataset$CLASS_NAME == "Non_vegetated",]
+
+trajectories_dataset_nv = trajectories(dataset_nv[,-2])
+
+ggplot(trajectories_dataset_nv , aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)+
+  facet_grid(id~.)+ theme(legend.position="none")
+
+```
+
+For the class of beaches dunes we have ndvi values lower than cero, this probably is because the collected sample was taken during a dry day where the water flow was low. Those points frequently overlaped by a layer of water are going to be eventually categorized as water depending of the ndvi value for certain time. Lets' have a look of how many samples we have per sub category of non-vegetation class.
+
+```{r}
+table_nv = table(dataset_nv$DESCRICAO)
+df_nv = data.frame(table_nv, pos= as.numeric(table_nv)*0.5)
+ggplot(data=df_nv , aes(x=Var1, y=Freq)) +
+  coord_flip() +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label = Freq, y= pos))
+
+```
+
+Most of the samples belong to the category sparse vegetation and therefore, it is very likely the pixels overlapping this points are going to have similar espectral response to Natural herbaceus Bushes or shrubs. In this sense, since I want pure pixels representing bare soils, I will trace only points that belong to the category bare rock, Beaches dunes and sand plain. 
+
+```{r}
+query_dataset_nv = dataset[dataset$DESCRICAO %in% c("3.3.1.01.1 Praias, dunas e areais interiores", "3.3.2.01.1 Rocha nua"),]
+
+id_nv = df_without_outliers(query_dataset_nv[,c(-1,-2)] ,methodo = "None", season)
+
+#graphic
+ggplot(id_nv[[3]], aes(x=Season)) +
+  geom_line(aes(y=NDVI, group=Trajectory, color='blue'),show.legend = FALSE) +
+  theme(axis.text=element_text(size=13)) +
+  labs(title="Time Series non-vegetatation", 
+       subtitle=paste0("Row data"," 473 samples"), 
+       y="NDVI", 
+       color=NULL) 
+
+```
+
+
+Here, after this process we have taken almost 60% percent of the information out.
+
+
+### 4.8 Water
+
+Class water is composed for several categories, I want to explore how many samples we have per class using as reference the 1000 we have.
+
+```{r}
+dataset_water = dataset[dataset$CLASS_NAME == "Water" ,] 
+table_water = table(dataset_water$DESCRICAO)
+df_water = data.frame(table_water, pos= as.numeric(table_water)*0.5)
+ggplot(data=df_water , aes(x=Var1, y=Freq)) +
+  coord_flip() +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label = Freq, y= pos))
+
+```
+
+Since the spectral response defined by the pixel obeys to the predominant land cover type around the point label and not necessarily to the type which the point is representing, it is advisable to get rid of those points of water where I pressume the water can be hardly identified for this sensor due to their size. In this sense, I will take the following categories out: charcas (puddle), reservatorios de represas (dams), lagos interiores naturais (inland natural lakes), lagos and lagoeas interiores artificiais (inland artificial lakes) and canais artificias (artificial channels).
+
+Let's explore how the rest of categories looks like.
+
+```{r}
+query_dataset_water = dataset[dataset$DESCRICAO %in% c("5.2.2.01.1 Desembocaduras fluviais" , "5.1.1.01.1 Cursos de água naturais", "5.1.2.02.1 Reservatórios de barragens" ),]
+#graphic
+trajectories_query_dataset_water = trajectories(query_dataset_water[,-2])
+
+ggplot(trajectories_query_dataset_water, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)+
+  facet_grid(id~.)+ theme(legend.position="none")
+
+```
+
+I expect normally values of ndvi close or lower than zero since the near infrared and red reflects in same proportions for this class. However, we can see a strange large range of ndvi over the year that overcome the cero. That is, instead of seeing low positive or negative values we have trajectories with values that go up to one. Therefore, since I expect some samples can temporally be non-vegetated due to the the changes in the waterflow of the river, I will remove all those samples where all ndvi values over the year keep positive. That is, if the ndvi values of one point are positive over all the year is probably that the point is not representing anymore this class.
+
+```{r}
+remove_water_outliers = function(x){
+  #copy of the data frame
+  x1 = x[,c(-1,-2)]
+  st_geometry(x1) = NULL
+  #function evaluating all positives during the year
+  positive = function(y){
+    return(!all(y >= 0))
+  }
+  rem_ind = apply(x1,1,positive)
+  return(x[rem_ind,])
+}
+query2_dataset_water = remove_water_outliers(query_dataset_water)
+```
+
+
+### 4.9 Sealed
+
+Here class sealed is composed for different ccategories. Let's have a look of how many samples we have per category.
+
+```{r}
+dataset_sealed = dataset[dataset$CLASS_NAME == "Sealed" , ]
+table_sealed = table(dataset_sealed$DESCRICAO)
+df_sealed = data.frame(table_sealed , pos= as.numeric(table_sealed)*0.5)
+ggplot(data=df_sealed , aes(x=Var1, y=Freq)) +
+  coord_flip() +
+  geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label = Freq, y= pos))
+
+```
+
+
+```{r }
+query1_dataset_sealed = dataset_sealed[dataset_sealed$DESCRICAO %in% c("1.2.2.01.1 Rede viária e espaços associados",
+                                                        "1.2.1.01.1 Indústria",
+                                                        "1.1.1.02.1 Tecido urbano contínuo predominantemente horizontal"),]
+
+#graphic
+trajectories_query1_dataset_sealed = trajectories(query1_dataset_sealed[,-2])
+
+ggplot(trajectories_query1_dataset_sealed, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)+
+  facet_grid(id~.)+ theme(legend.position="none")
+
+```
+
+I will take out the following classes: discount urban (335), sparse discount urban (82), agricultural instalations (42), in total is 459.
+
+```{r }
+query2_dataset_sealed = dataset_sealed[dataset_sealed$DESCRICAO %in% c("1.1.2.01.1 Tecido urbano descontínuo",
+                                                        "1.1.2.02.1 Tecido urbano descontínuo esparso",
+                                                        "1.2.1.03.1 Instalações agrícolas"),]
+#graphic
+trajectories_query2_dataset_sealed = trajectories(query2_dataset_sealed[,-2])
+
+ggplot(trajectories_query2_dataset_sealed, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)+
+  facet_grid(id~.)+ theme(legend.position="none")
+
+```
+
+let's explore the trajectories
+
+```{r }
+query3_dataset_sealed = dataset_sealed[!(dataset_sealed$DESCRICAO%in%c("1.1.2.01.1 Tecido urbano descontínuo",
+                                                        "1.1.2.02.1 Tecido urbano descontínuo esparso",
+                                                        "1.2.1.03.1 Instalações agrícolas")),]
+df_query3 = df_without_outliers(query3_dataset_sealed[,c(-1,-2)], methodo = 'model_1', season, min_x = 0, max_x = 1)
+#graphic
+ggplot(df_query3[[3]], aes(x=Season)) +
+  geom_line(aes(y=NDVI, group=Trajectory, color='red'),show.legend = FALSE) +
+  labs(title="Time Series sealed", 
+       subtitle=paste0("Method: IQR ± 1.5IQR, from 541 samples ", df_query3[[1]], " are out: ", round((df_query3[[1]]/542)*100,2),"%" ), 
+       y="NDVI", 
+       color=NULL)
+
+new_dataset_sealed = query3_dataset_sealed[-df_query3[[2]],]
+```
+
+
+
+
+### 4.9 Wetlands
+
+As it was done with water, I will keep only the time series which values at least one negative. This condition will allow me to leave samples that over time changed by other land cover type no intersected by water.
+
+
+```{r }
+dataset_wetlands = dataset[dataset$CLASS_NAME == "Wetlands",]
+#graphic
+trajectories_dataset_wetlands = trajectories(dataset_wetlands[,-2])
+ggplot(trajectories_dataset_wetlands, aes(x=Season, y=median, color = id)) +
+  geom_line(aes(x=Season, y = median, color=id)) +
+  geom_ribbon(aes(ymin=lower_limit,ymax=upper_limit,fill=id),color="grey70",alpha=0.4)+
+  facet_grid(id~.)+ theme(legend.position="none")
+
+```
+
+
+
+```{r , echo = FALSE}
+file_out = "/home/user/Documents/TESISMASTER/VECTOR/Analysis_Outliers_Composites/training_samples_composites_cleaned.shp"
+out1 = rbind(dataset2,query_dataset_nv)
+out2 = rbind(out1,query2_dataset_water)
+out3 = rbind(out2,new_dataset_sealed)
+out4 = rbind(out3,dataset_wetlands)
+
+#saving files
+#sf::write_sf(out4 , dsn = file_out)
+
+out0 = out4[out4$CLASS_NAME %in% c("Non_vegetated", "Water" , "Sealed","Wetlands") ,]
+#graphic0
+table_output = table(out0$CLASS_NAME)
+df_output1 = data.frame(table_output*0.1, c("New Data"),pos= as.numeric(table_output*0.1)*0.5)
+colnames(df_output1) = c("Classes","percentage","Data","pos")
+#creating data frame to plot bars using ggplot2
+df_output2 = df_output1
+df_output2$percentage = c(100 - df_output1$percentage)
+df_output2$pos = c(100 - round(df_output2$percentage *0.5,2))
+df_output2$Data = "Data out"
+df_output0 = rbind(df_output1, df_output2)
+df_output0$percentage = round(df_output0$percentage,2)
+df_output0$Data = factor(df_output0$Data, c("Data out","New Data"))
+
+ggplot(data=df_output0  , aes(x=Classes, y=percentage, fill=Data)) +
+ theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_bar(stat="identity") +
+  geom_text(aes(label = paste0(percentage,"%"), y= pos))
+```
+
+
+I think the better way to show which works better than other is by implementing the classification using both hypothesis. 
