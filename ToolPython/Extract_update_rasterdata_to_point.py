@@ -5,8 +5,8 @@ import lulc
 #This task probabily will be done later, there i not too much time to rewrite everything
 #After checking the previous proposal I think is better to add the raster by bands, tiff does not support file hevier than 4 gb
 #WEELL, finally the decision is to add values by band and update chapefile, so I will leave this version without modificacion, so I will create a new version
-# --input /home/user/Documents/TESISMASTER/VECTOR/Analysis_Outliers_Composites/training_samples_composites.shp
-# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_2turn/temp_ndvi
+# --input /home/user/Documents/TESISMASTER/VECTOR/Training_data_composite_anual/training_samples5.shp
+# --raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_anual
 
 if __name__== "__main__":
     parser = argparse.ArgumentParser()
@@ -59,14 +59,23 @@ print("Ready coordinates")
 #====================
 
 #=====================================
+#Diigital elevation model
+
+dem_path = "/home/user/Documents/TESISMASTER/ZDEM/IM_2017_ZDEM_10m.tiff"
+slope_path = "/home/user/Documents/TESISMASTER/ZDEM/IM_2017_ZSLOPE_10m.tiff"
 
 list_path_raster = [os.path.join(args.raster,w) for w in os.listdir(args.raster) if w.endswith('.jp2') or w.endswith('.tiff')]
 list_path_raster.sort()
+list_path_raster.append(dem_path)
+list_path_raster.append(slope_path)
+print(list_path_raster)
 
 #creating name columns according with the name of the files
 
 list_names_raster = [w.split('.')[0].split("_")[-2] for w in os.listdir(args.raster) if w.endswith('.jp2') or w.endswith('.tiff')]
 list_names_raster.sort()
+list_names_raster.append("ZDEM")
+list_names_raster.append("ZSLOPE")
 print(list_names_raster)
 
 print("list of rasters")

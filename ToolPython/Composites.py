@@ -5,8 +5,8 @@ import numpy as np
 from osgeo import ogr, gdal
 import lulc
 
-#### --input  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Images/summer_temp
-#### --output /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_median_summer_july
+#### --input  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi/Winter_composite
+#### --output /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi/result
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -57,17 +57,17 @@ print(rows)
 #getting indeces of the largest ndvi in the axis time
 #===========================================
 #This was before, problems with memory
-#index_row_max = np.argmax(ndvi,0)
+index_row_max = np.argmax(ndvi,0)
 #============================================
 #robust analysis based in medians
 #============================================
 
-def argmedian(x):
-    x1 = [i for i in x if str(i) != 'nan']
-    arg_median = np.argsort(x)[len(x1)//2]
-    return(arg_median)
+#def argmedian(x):
+#    x1 = [i for i in x if str(i) != 'nan']
+#    arg_median = np.argsort(x)[len(x1)//2]
+#    return(arg_median)
 
-index_row_max = np.apply_along_axis(argmedian, 0, ndvi)
+#index_row_max = np.apply_along_axis(argmedian, 0, ndvi)
 #============================================
 #slicing maximum pixels of NDVI and getting indices
 #reshaping index

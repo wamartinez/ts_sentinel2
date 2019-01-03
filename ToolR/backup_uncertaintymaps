@@ -1,0 +1,120 @@
+#studyarea = '/home/user/Documents/TESISMASTER/VECTOR/CartoBase/StudyArea.shp'
+#file = '/home/user/Documents/TESISMASTER/VECTOR/Training_data_bands/IM_20170714/training_samples3_rf_w.shp'
+#library(spatstat)
+#library(maptools)
+#S <- readShapePoly(studyarea)
+SP <- as(S, "SpatialPolygons")
+W <- as(SP, "owin")
+#reading shapefile
+library(sf)
+shp = sf::read_sf(file)
+xy = sf::st_coordinates(shp)
+df = data.frame(w = shp$weights,xy)
+#converting to poinnt pattern
+mypattern <- ppp(df[,"X"], df[,"Y"], window = W, marks = df[,"w"])
+#plot(mypattern)
+den <- density(mypattern, sigma = 4000)
+#plot(den)
+couleurs  <- tail(topo.colors(trunc(1.4 * 100)),100)
+col_pal = colorRampPalette(c("blue","red"))
+colors = col_pal(100)
+persp(den , d=1, col =colors, ticktype='detailed', cex.lab=4, cex.axis=4,theta = 40, phi = 20)
+
+
+
+
+```{r }
+library(stars)
+library(raster)
+folders_path = '/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/Composites'
+
+list_raster_function = function(x){
+  raster::raster(paste0(x,"/Composition_ndvi_10m.tiff"))
+}
+
+list_raster = lapply(list.dirs(folders_path)[-1],list_raster_function)
+ndvi_stack = stack(list_raster)
+#converting to stars object
+ndvi_stars = st_as_stars(ndvi_stack)
+plot(ndvi_stars)
+```
+
+
+
+
+
+# Selecting static data
+
+This document aims to analysing the values of informativness that were calculated using entropies. I want to define which samples are not informative ifor any image during the year 2017 and also how many samples are truly static or pure samples over the year 2017.
+
+
+let's call the shapefiles and retain the 75% samples most informative per class. 
+
+```{r}
+library(sf)
+path_shapefiles = '/home/user/Documents/TESISMASTER/VECTOR/Training_data_ImagerySTF'
+#Dates of the images
+day_shoot = c("2017/01/15", "2017/04/05", "2017/05/25", "2017/06/14","2017/07/29",
+              "2017/08/13","2017/09/12", "2017/10/12", "2017/11/16", "2017/12/16")
+
+function_read_shp = function(x, shape){
+    df = sf::read_sf(paste0(x,shape))
+    return(df)
+    }
+#reading shapefiles
+list_shapefiles_75 = lapply(list.dirs(path_shapefiles)[-1],function_read_shp, shape ="/training_samples6_rf_w_queryB_75.shp")
+names(list_shapefiles_75) = day_shoot
+```
+
+
+# Now less trace the static data
+
+```{r, warning = FALSE}
+#initialize intersection
+out_shapefile_75  = list_shapefiles_75[[1]]
+for(i in 2:length(list_shapefiles_75)){
+  out_shapefile_75 = sf::st_intersection(out_shapefile_75 ,list_shapefiles_75[[i]])[,"CLASS_NAME"]
+}
+table1 = table(out_shapefile_75$CLASS_NAME)
+library(reshape2)
+table1 = reshape2::melt(table1)
+table1$posit = table1$value*0.5
+#graphic
+ggplot(data=table1 , aes(x=Var1, y=value)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 13), legend.text=element_text(size=15)) + 
+  geom_text(aes(label = value, y= posit))
+#75% informative samples
+#
+#saving file
+#file_staticdata = '/home/user/Documents/TESISMASTER/VECTOR/Informativeness/static_data.shp'
+#sf::write_sf(out_shapefile_75, dsn= file_staticdata)
+```
+
+# Classifications in composites
+
+
+```{r cars}
+#devtools::install_github("r-spatial/stars")
+#devtools::install_github("r-spatial/sf")
+#library(raster)
+#library(stars)
+
+#tif1 = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICCION/IM_SUMMERB_75M6.tif"
+#tif2 = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICCION/IM_WINTERB_75M6.tif"
+#x1 <- tif1 %>% read_stars 
+#x2 <- tif2 %>% read_stars 
+#par(mar = rep(0,4))
+#colores = c("red","black","orange","green","#006600", "pink","yellow","#800000","blue","#33B5FF")
+
+#classes = c("Bushes_and_shrubs" ,"Coniferous_trees","Eucalyptus_trees", "Herbaceous", "Holm_and_Cork_Trees",
+#  "Non_vegetated", "Rice_fields", "Sealed", "Water","Wetlands")
+
+#image(x1, col = colores)
+#legend("topright", legend = classes,col = colores,pch= rep(16,10))
+
+#image(x2, col = colores)
+#legend("topright", legend = classes,col = colores,pch= rep(16,10))
+```
+
+

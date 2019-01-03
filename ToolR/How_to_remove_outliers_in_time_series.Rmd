@@ -24,19 +24,22 @@ library(kableExtra)
 
 # 1. Introduction
 
-The purpose of this vignette is to document the process of removing outliers in the data set COS in the environment of R with the aim at exploring different accuraccies that we can achieve in the classification for the year 2017. As part of the supervised classification, besides the imagery for 2017, we account with a training dataset called COS (Carta de uso e Ocupacao do solo) composed by 13000 samples categorized by different LCLU types (1000 samples each type). Since our training dataset differs in date and source of adquisition respect the imagery (labels done by interpretation of aerial imagery), we need to trace the differences between what the labels explain and what actually happens in the ground. Moreover, the dataset contains two labels: **descricao** and **CLASS_NAME**. The labels of **descrica** correspond to the level 5 of COS nomenclature. That is, use of the land cover. The label CLASS_NAME corresponds to a generalization done by the institute DGT. I will play with both labels dependending on how they match with the spectral information of the imagery.
+The purpose of this vignette is to document the process of removing outliers in the data set COS in the environment of R with the aim at exploring different accuraccies that we can achieve in the classification for the year 2017. As part of the supervised classification, besides the imagery for 2017, we account with a training dataset called COS (Carta de uso e Ocupacao do solo) composed by 13000 samples categorized by different LCLU types (1000 samples each type). Since our training dataset differs in date and source of adquisition respect the imagery (labels done by interpretation of aerial imagery), we need to trace the differences between what the labels explain and what actually happens in the ground. In this sense, since all samples are not equally informative for each image, we propose as first attempt to play with the ndvi values, so that we can make asumptions of which samples are going to be used in one image and another not.
+
+Before moving to the methodology, I only want to highlight the land cover types for this study: Holm and Cork_Trees, Herbaceous_permanet,  Herbaceous periodic, Bushes and shrubs, Non vegetated, Wetlands, Sealed, Water, Rice_fields, Coniferous_trees, Eucalyptus_trees.
+
 
 # 2. Methodology 
 
-Therefore, as first attempt to explore the ranges of NDVI per class, we recreated the NDVI for 29 images available for the year 2017 an extract the NDVI values to the 13000 points. Since We expect certain homogeneity in the NDVI values per class and per time, we think that the set of those values that do not follow this trend are probably points that may change for natural or anthropogenic reasons; or simply the label is not enough representation of the area covered by the pixel.  
+We recreated the NDVI for 29 images available for the year 2017 an extract the NDVI values to the 12000 points. Since We expect certain homogeneity in the NDVI values per class and per time, we think that the set of those values that do not follow this trend are probably points that may change for natural or anthropogenic reasons; or simply the label is not enough representation of the area covered by the pixel.  
 
-Therefore, to measure the statistical dispersion of NDVI per class and per time we are going to use two methods, interquantile ranges and standart deviations. 
+Therefore, to measure the statistical dispersion of NDVI per class and per time we are going to use two methods, interquantile ranges and central means. 
 
 
 ```{r}
 library(sf)
 library(ggplot2)
-folder_path = "/home/user/Documents/TESISMASTER/VECTOR/Analysis_outliers/training_samples2.shp"
+folder_path = "/home/user/Documents/TESISMASTER/VECTOR/Training_ndvi/training_samples2.shp"
 #Days of the images
 day_shoot = c("2017/01/15", "2017/04/05", "2017/05/25", "2017/06/04", "2017/06/14",
               "2017/07/04", "2017/07/09", "2017/07/14", "2017/07/24", "2017/07/29",
@@ -82,9 +85,9 @@ model1 =  function(x, min_x, max_x){
 ```
 
 
-## 2.2 Method 2: Standard deviation analysis
+## 2.2 Method 2: Central means
 
-And alternative to interquantile range analysis is to explore the values that are at different standard deviations from the mean of the data (here two standard deviations). Standard deviation analysis is also a measurement of dispersion, however, it is problematic for not being resistant to the presence of outliers and, furthermore, it works under the assumption that data must follow certain normality.  
+And alternative to interquantile range analysis is to explore the values that are at different standard deviations from the mean of the data (here two standard deviations). Standard deviation analysis is also a measurement of dispersion. However, it is problematic for not being resistant to the presence of outliers and, furthermore, it works under the assumption that data must follow certain normality.  
 
 $$
 Limits^{t} = \bar{x}^{t} \pm  n \cdot \sigma ^{t}
@@ -99,8 +102,8 @@ model2 =  function(x, min_x, max_x){
   }
   sd_x = sd(x,na.rm = TRUE)
   mean_x = mean(x,na.rm = TRUE)
-  limit_left = mean_x - 1*sd_x
-  limit_rigth = mean_x + 1*sd_x
+  limit_left = mean_x - 1.5*sd_x
+  limit_rigth = mean_x + 1.5*sd_x
   #filter according with the threshold and central tendency criterium
   ind = which(x < limit_left | x > limit_rigth | is.na(x))
   return(ind)
@@ -108,18 +111,35 @@ model2 =  function(x, min_x, max_x){
 
 ```
 
-## 2.3 Implementation
 
-Well, basically the next function apply the previous methods and return a suitable dataframe for the use of ggplot2 library.
+function only for transformation of the data in a suitable form in my analysis
 
 ```{r}
-#THis function remove the possible outliers of the data set, considering different classes and times.
+model0 =  function(x, min_x, max_x){
+  ind_t = which(x< min_x | x > max_x)
+  if(length(ind_t)!=0){
+    x[ind_t] = NA  
+  }
+  #filter according with the threshold
+  ind = which(is.na(x))
+  return(ind)
+}
+
+```
+
+
+## 2.3 Implementation
+
+Well, basically the next function apply the previous methods and return a suitable dataframe for the use of **ggplot2** library.
+
+```{r}
+#This function remove the possible outliers of the data set, considering variability through the time.
 removing_outliers = function(datast,
-                               methodo = c("None","model_1", "model_2"), day_shoot,pivot = "CLASS_NAME"){
+                               methodo = c("model_0","model_1", "model_2"), day_shoot,pivot = "CLASS_NAME"){
   #selecting model
   list_out = vector("list",2)
   func_choice <- switch(methodo,
-                       'None'='None',
+                       'model_0'=model0,
                        'model_1'=model1,
                        'model_2'=model2
                        )
@@ -204,11 +224,11 @@ trajectories_boxplot = function(df,day_shoot){
 
 # 3. Results
 
-I will go through all the classes analysing the ndvi values in order to set which samples must be out of the training data.
+I will go through all the classes analysing the ndvi values per image in order to set which samples must be out of the training data.
 
 ## 3.1 Forest
 
-In the following graphic we can see the dispersion of ndvi for three different classes of trees per image over the year 2017. The classes of coniferos and eucaliptus depict similar variance and range of ndvi over the year. Instead, Holm and cork trees depict lower variances and a lower ranges of ndvi. Besides that, we can visualize the presence of possible anomaly data according with the black points located beyond the whiskers of the box.
+In the following graphic we can see the dispersion of ndvi for three different classes of trees per image over the year 2017. The classes of Holm and Cork trees, and Eucaliptus depict similar dispersion and median in terms of NDVI. Instead, Coniferous trees depict lower dispersion and a lower ranges of median of NDVI values. Besides that, at the begining of he year, all three classes have precense of a high amount of apparently anomaly data. This samples with ndvi ranges lower than 0.3 can be mixtures of the orginal class with shrubs of natural vegetation. Threfore, it may be good aidea to remove this samples in order to account with samples as pure as possible in the classification.
 
 ```{r}
 library(reshape2)
@@ -218,16 +238,17 @@ query_dataset_trees = dataset[dataset$CLASS_NAME %in% c('Holm_and_Cork_Trees',
                                                    ,c(-1)]
 
 trajectories_trees  = trajectories_boxplot(query_dataset_trees, day_shoot)
-trajectories_trees$class = factor(trajectories_trees$class,  labels = c('Holm_and_Cork_Trees', 'Eucalyptus_trees', 'Coniferous_trees'))
+trajectories_trees$class = factor(trajectories_trees$class,  labels = c('Coniferous_trees' ,'Eucalyptus_trees','Holm_and_Cork_Trees'))
 
 ggplot(trajectories_trees, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-Since I want to evaluate the impact of the presence of the anomaly data in the final accuraccy of the classification, I will remove those outliers assuming the two methodologies proposed above.
 
 ### 3.1.1 Interquantile range
+
+After implementing the first technique over the data of trees, we can see a new escenario where Eucaliptus and Coniferous trees show similar dispersion and trend. However, now, the Holm and Cork trees looks to move downward and show a lower range of ndvi values in comparition with the other two classes; this behaviour can obey to the fact that Holm and cork trees tend to be plant with certain spatial regularity, and thus depict lower amount of vegetation per area. In this sense, NDVI values are a sort of indicatior of biomass for these three species.
 
 ```{r}
 query_dataset_trees = dataset[dataset$CLASS_NAME %in% c('Holm_and_Cork_Trees',
@@ -241,271 +262,218 @@ ggplot(df_trees, aes(x=time, y=NDVI, fill=class)) +
     geom_boxplot() 
 ```
 
-### 3.1.2 Interquantile range
+### 3.1.2 Central means
 
-Although the previous graphic looks similar, I only want to emphasize that in the attempt of removing outliers by implementing standard deviation we will have probably less values than implementing the interquantile range. For example, using the previos technique we reduce the sample of forest in total to 10% and in the case of the satandar deviation to 15%. I will inclinate for the methodology that is more resistant to outliers and also avoid a loss of too much information.
+The attempt of removing outliers by implementing standard deviation lead to have signals apparantly more pure. It is expectable that ndvi values of trees are higher than 0.3, so that this attempt remove most part of the sampling that can obey to a mixture of dwarf trees with other classes of vegetation than turn out not representative labels.
+
+Moreover, this attempt imply to sacrifice more information than the previous technique, so that, we must be awere of how much information we are wealling to loss during this preprocessin stage. For example, using the previos technique we only get rid of a little amount of data that eventually dont represent more than the 2% of information. However, considering 1.5 standard deviiations the average of information out range between 7% and 15%.
 
 ```{r}
 trees_m2 = removing_outliers(query_dataset_trees, methodo = c("model_2"),day_shoot)
 df_trees = dataframe_ggplot(trees_m2)
 ggplot(df_trees, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
+    geom_boxplot()
 ```
 
-### 3.1.3 Merging classes for forest
+### 3.1.3 Removing NDVI values lower than 0.3 from classes of trees
 
-Since the range of the espectral variation over the time of these three classes are particularly the same, we may expect high confusion in their classification and therefore a multitemporal analysis per pixel not the right answer to separete this sort of classes. In this sense, since I already try to perform classification using the three classes separetely, not having good results of course, I want to join in this opportunity the classes. THerefore, I will select randomly 1000 samples that falls within a margen of 0.3 and 1. THis range came from some researchs where it says that vegetation as trees must have values larger than 0.3 
+This additional stage of preprocessing is mainly with the goal of removing any additional sample with ndvi value lower than 0.3 from the training set of trees.
 
 ```{r}
 remove_values_forest = function(x){
   colnames(x) = c("CLASS_NAME","NDVI","geometry")
   ind1 = which(x$NDVI >= 0.3)
-  ind2 = sample(length(ind1),1000)
-  x1 = x[ind1[ind2],]
-  x1$CLASS_NAME = "Forest"
+  x1 = x[ind1,]
   return(x1)
 }
-query_trees_tr = lapply(trees_m2,remove_values_forest)
-df_trees_plot = dataframe_ggplot(query_trees_tr)
+#interquanile range
+query_trees_m1  = lapply(trees_m1, remove_values_forest)
+#central means
+query_trees_m2 = lapply(trees_m2, remove_values_forest)
+
+df_trees_plot = dataframe_ggplot(query_trees_m2)
 ggplot(df_trees_plot, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot()
 ```
 
-## 3.2 Shrubs and herbaceus vegetation asociation 
 
-as part also of the forest and seminatural areas we have
+## 3.2 Bushes and shrubs
+
+USing the same wrokflow for trees, we implement the same for Bushes and shrubs; except for the last part were we constrained aour data of trees to certain range of ndvi values.
 
 ```{r}
 library(reshape2)
-query_dataset_veg_asociation = dataset[dataset$CLASS_NAME %in% c("Bushes_and_shrubs","Natural_Herbaceous" ) 
-                                                   ,c(-1)]
-trajectories_veg_association  = trajectories_boxplot(query_dataset_veg_asociation, day_shoot)
-ggplot(trajectories_veg_association , aes(x=time, y=NDVI, fill=class)) + 
+bushes = dataset[dataset$CLASS_NAME %in% c("Bushes_and_shrubs"),c(-1)]
+trajectories_bushes  = trajectories_boxplot(bushes, day_shoot)
+ggplot(trajectories_bushes, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
+    geom_boxplot()
 ```
 
 ### 3.2.1 Interquantile range
 
 ```{r}
-query_dataset_veg_asociation = dataset[dataset$CLASS_NAME %in% c("Bushes_and_shrubs","Natural_Herbaceous" ) 
-                                                   ,]
-veg_asociation_m1 = removing_outliers(query_dataset_veg_asociation, methodo = c("model_1"),day_shoot)
-df_veg_asociation = dataframe_ggplot(veg_asociation_m1)
-ggplot(df_veg_asociation, aes(x=time, y=NDVI, fill=class)) + 
+query_bushes = dataset[dataset$CLASS_NAME %in% c("Bushes_and_shrubs") ,]
+query_bushes_m1 = removing_outliers(query_bushes, methodo = c("model_1"),day_shoot)
+df_query_bushes_m1 = dataframe_ggplot(query_bushes_m1)
+ggplot(df_query_bushes_m1, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-### 3.2.2 Interquantile range
-
-```{r}
-veg_asociation_m2 = removing_outliers(query_dataset_veg_asociation, methodo = c("model_2"),day_shoot)
-df_veg_asociation = dataframe_ggplot(veg_asociation_m2)
-ggplot(df_veg_asociation, aes(x=time, y=NDVI, fill=class)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.2.3 Summary
-
-```{r}
-#function to count labels after performing cleaning data
-func_barchar = function(w){
-  count_labels = function(x){
-    colnames(x) = c("class", colnames(x)[2:3])
-    st_geometry(x) = NULL
-    sp1 = split(x,x$class)
-    x1 = lapply(sp1, nrow)
-    return(melt(x1))
-  }
-  list_count = lapply(w, count_labels)
-  output = NULL
-  for(i in 1:length(list_count)){
-    d = data.frame(list_count[[i]],time= names(list_count[i]))
-    output = rbind(output, d) 
-  }
-  return(output)
-}
-
-out_barchar = func_barchar(veg_asociation_m1)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-#graphic with the second cleaning technique
-out_barchar = func_barchar(veg_asociation_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-```
-### 3.2.3 Merging classes for Shrubs and herbaceus vegetation asociation
-
-AS I did above with forest, I will seelect randomly 1000 samples per date and create a new object with the samples for Shrubs and herbaceus vegetation asociation
+### 3.2.2 Central means
 
 
 ```{r}
-remove_values_veg_asociation = function(x){
-  colnames(x) = c("CLASS_NAME","NDVI","geometry")
-  ind = sample(length(x$CLASS_NAME),1000)
-  x1 = x[ind,]
-  x1$CLASS_NAME = "Shrubs"
-  return(x1)
-}
-query2_veg_asociation = lapply(veg_asociation_m2,remove_values_veg_asociation)
-df_veg_asociation = dataframe_ggplot(query2_veg_asociation)
-ggplot(df_veg_asociation , aes(x=time, y=NDVI, fill=class)) + 
+query_bushes_m2 = removing_outliers(query_bushes, methodo = c("model_2"),day_shoot)
+df_query_bushes_m2 = dataframe_ggplot(query_bushes_m2)
+ggplot(df_query_bushes_m2, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot()
-```
 
-### 3.2.4 Vegetation over the time
-
-In this attempt I want to convert labels associated with natural herbaceus to non vegetation in the case they have lower ndvi values than 0.3. Therefore, I will implement the following:
-
-```{r}
-convert_no_vegetated = function(x){
-  colnames(x) = c("class","NDVI","geometry")
-  ind = which(x$NDVI < 0.3)
-  x[ind,"class"] = "Non_vegetated"
-  return(x)
+len_x = function(x){
+  table(x$CLASS_NAME)
 }
-query3_veg_asociation = lapply(query2_veg_asociation,convert_no_vegetated)
-
+#lapply(query_bushes_m2, len_x)
 ```
 
+As it was in the preprocessing of trees, the second technique take a range of 7% and 15% of the information out in comparition to the first techniqe thah only imply to take 2% of the information out.
 
-## 3.3 Rice fields and Herbaceous permanent
 
-I want to highligth with the next graphic the strong differences between herbaceus permanent and rice fields trajectories of NDVI. The notable espectral difference is because rice fields is part of temporal crops that need of irrigation after the sowing stage. In this sense, we expect this class differs from the herbaceus permanent due to the moisture treatment over the crops in the period of summer.
+## 3.3 Rice fields
+
+The sowing and harvesting of rice in central of portugal differs from one place to another. HOwever, in most of the cases the sowing is done during spring. That is, months of Febrary and April. Instead, the time for harvesting the rice rangeS between September and NOvember. Accordign with the graphic of ndvi values over the year, this calendar makes a lot of sense, since the highest ndvi values belong to the period of mid season and the lowest to the sowing and harvesting. Besides that, there are several samples wich ndvi values range lower than cero, this happens during the first stage of the cycle rice production where the crops are flooded and thus response as waterlands.
 
 
 ```{r}
-query_dataset_agricultural = dataset[dataset$CLASS_NAME %in% c('Rice_fields',
-                                                   'Herbaceous_permanet') 
-                                                   ,c(-1)]
+ricefields = dataset[dataset$CLASS_NAME %in% c('Rice_fields') ,c(-1)]
 
-trajectories_agricultural  = trajectories_boxplot(query_dataset_agricultural, day_shoot)
+trajectories_ricefields  = trajectories_boxplot(ricefields, day_shoot)
 
-ggplot(trajectories_agricultural, aes(x=time, y=NDVI, fill=class)) + 
+ggplot(trajectories_ricefields, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
 ### 3.3.1 Interquantile range
 
+After implementing this first technique, we can see that large part of what believe is anomaly data using NDVI is out. Normaly this technique did not have a huge impact of removing data in the previous classes. However, in this opportunity this technique takes in average 7% of the information out. Although the number of imformation out in this opportuniy increased, there are still ndvi values that range in a lower value of cero. Therefore, in order to evoid confusion with labels of wetlands, I will remove them. 
+
 ```{r}
-query_dataset_agricultural = dataset[dataset$CLASS_NAME %in% c('Rice_fields',
-                                                   'Herbaceous_permanet')
-                                                   ,]
-agricultural_m1 = removing_outliers(query_dataset_agricultural, methodo = c("model_1"),day_shoot)
-df_agricultural = dataframe_ggplot(agricultural_m1)
-ggplot(df_agricultural, aes(x=time, y=NDVI, fill=class)) + 
+query_ricefields = dataset[dataset$CLASS_NAME %in% c('Rice_fields') ,]
+
+ricefields_m1 = removing_outliers(query_ricefields , methodo = c("model_1"),day_shoot)
+df_ricefields_m1 = dataframe_ggplot(ricefields_m1)
+ggplot(df_ricefields_m1 , aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-### 3.3.2 Standard deviation
+### 3.3.2 Central means
+
+With central means I avoid the process of removing ndvi values lower than cero manually. Under this technique the number of samples out range within 7 and 15%.
 
 ```{r}
-query_dataset_agricultural = dataset[dataset$CLASS_NAME %in% c('Rice_fields',
-                                                   'Herbaceous_permanet') 
-                                                   ,]
-agricultural_m2 = removing_outliers(query_dataset_agricultural, methodo = c("model_2"),day_shoot)
-df_agricultural = dataframe_ggplot(agricultural_m2)
-ggplot(df_agricultural, aes(x=time, y=NDVI, fill=class)) + 
+ricefields_m2 = removing_outliers(query_ricefields , methodo = c("model_2"),day_shoot)
+df_ricefields_m2 = dataframe_ggplot(ricefields_m2)
+ggplot(df_ricefields_m2 , aes(x=time, y=NDVI, fill=class)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
+    geom_boxplot() 
+#lapply(ricefields_m1, len_x)
+```
+
+
+## 3.4 Herbaceous
+
+We have two classes called 'Herbacous permanent' or always green and 'herbacous periodic'. The former class is characterized for being a temporal class, so that, I will query samples with vegetation using ndvi values larger than 0.3. Therefore, I will start with herbaceous vegetation implementing the usual tecniques so far used in this document.
+
+### 3.4.1 Herbaceous Permanent
+
+```{r}
+herbaceous_permanent = dataset[dataset$CLASS_NAME %in% c('Herbaceous_permanet') ,c(-1)]
+
+trajectories_herbaceous_permanent= trajectories_boxplot(herbaceous_permanent, day_shoot)
+
+ggplot(trajectories_herbaceous_permanent, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-getting rid of ndvi values lower than 0
+### 3.4.1.1 Interquantile range
 
 ```{r}
-remove_values_agriculture = function(x){
-  colnames(x) = c("CLASS_NAME","NDVI","geometry")
-  ind1 = which(x$NDVI >= 0)
-  x1 = x[ind1,]
-  return(x1)
-}
-query_agricultural_tr = lapply(agricultural_m1,remove_values_agriculture)
-df_agricultural_plot = dataframe_ggplot(query_agricultural_tr)
-ggplot(df_agricultural_plot, aes(x=time, y=NDVI, fill=class)) + 
+query_herbaceous_permanent = dataset[dataset$CLASS_NAME %in% c('Herbaceous_permanet') ,]
+
+herbaceous_permanent_m1 = removing_outliers(query_herbaceous_permanent , methodo = c("model_1"),day_shoot)
+df_herbaceous_permanent_m1 = dataframe_ggplot(herbaceous_permanent_m1)
+ggplot(df_herbaceous_permanent_m1 , aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-### 3.3.3 Summary
+### 3.4.1.2 Central means
 
 ```{r}
-#graphic with the second cleaning technique
-out_barchar = func_barchar(query_agricultural_tr)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+herbaceous_permanent_m2 = removing_outliers(query_herbaceous_permanent , methodo = c("model_2"),day_shoot)
+df_herbaceous_permanent_m2 = dataframe_ggplot(herbaceous_permanent_m2)
+ggplot(df_herbaceous_permanent_m2 , aes(x=time, y=NDVI, fill=class)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
+    geom_boxplot() 
 ```
 
-## 3.4 Herbaceous Periodic
 
-This class is composed by two signals, one that correspond to irrigated crops and onother to non- irrigated.
+### 3.4.2 Herbaceous Periodic with vegetation
+
+In this opportunity I am not going to clean data using any of the proposed techniques. Instead, I will trace those values lower than 0.3 in herbacesous periodic to take them out and thus only consider a class with vegetation.
 
 ```{r}
-query_dataset_temporalcrops = dataset[dataset$CLASS_NAME %in% c("Herbaceous_periodic") 
+herbaceous_periodic = dataset[dataset$CLASS_NAME %in% c("Herbaceous_periodic") 
                                                    ,c(-2)]
-trajectories_temporalcrops  = trajectories_boxplot(query_dataset_temporalcrops, day_shoot)
-ggplot(trajectories_temporalcrops, aes(x=time, y=NDVI, fill=class)) + 
+trajectories_herbaceous_periodic  = trajectories_boxplot(herbaceous_periodic, day_shoot)
+ggplot(trajectories_herbaceous_periodic, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.4.1 Interquantile range
-
-```{r}
-query_dataset_temporalcrops  = dataset[dataset$CLASS_NAME %in%  c("Herbaceous_periodic"),]
-temporalcrops_m1 = removing_outliers(query_dataset_temporalcrops , methodo = c("model_1"),day_shoot,pivot = "DESCRICAO")
-df_temporalcrops = dataframe_ggplot(temporalcrops_m1)
-ggplot(df_temporalcrops, aes(x=time, y=NDVI, fill=class)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.4.2 Standart deviation
-
-```{r}
-temporalcrops_m2 = removing_outliers(query_dataset_temporalcrops , methodo = c("model_2"),day_shoot,pivot = "DESCRICAO")
-df_temporalcrops = dataframe_ggplot(temporalcrops_m2)
-ggplot(df_temporalcrops, aes(x=time, y=NDVI, fill=class)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.4.3 Summary
-
-```{r}
-#graphic with the second cleaning technique
-out_barchar = func_barchar(temporalcrops_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+    geom_boxplot()
 ```
 
 
-### 3.2.5 Herbaceous periodic to non vegetation
-
-In this attempt I want to convert labels associated with natural herbaceus to non vegetation in the case they have lower ndvi values than 0.3. Therefore, I will implement the following:
-
 ```{r}
-convert_no_vegetated2 = function(x){
+herbaceous_periodic = dataset[dataset$CLASS_NAME %in% c("Herbaceous_periodic") ,]
+
+herbaceous_periodic_m0 = removing_outliers(herbaceous_periodic , methodo = c("model_0"),day_shoot)
+#function that keeps samples with ndvi values larger than cero
+vegetation = function(x){
   colnames(x) = c("CLASS_NAME","NDVI","geometry")
-  ind = which(x$NDVI < 0.3)
-  x$CLASS_NAME = "Herbaceous_periodic"
-  x[ind,"CLASS_NAME"] = "Non_vegetated"
-  return(x)
+  ind = which(x$NDVI >= 0.3)
+  return(x[ind,])
 }
 
-temporalcrops_m3 = lapply(temporalcrops_m2,convert_no_vegetated2)
+herbaceous_periodic_w_vegetation = lapply(herbaceous_periodic_m0, vegetation)
 ```
 
+
+One proposal, may be to ensamble those samples with ndvi values lower than 0.3 in the class of not vegetated. HOwever, I prefer to work with pure labels for this task.
+
+### 3.4.4 Selecting samples to create class herbaceous
+
+From the static modelling perspective, herbacous periodic with vegetation and herbaceous permanent are merged in order to work with inly one class. THerefore,I am going to select randomly 500 samples per class with vegetation and create the class **herbceous**.
+
+```{r}
+
+query_random = function(x){
+    colnames(x) = c("CLASS_NAME","NDVI","geometry")
+    if(nrow(x) >= 500){
+      ind_x = sample(1:nrow(x),500)
+      x$CLASS_NAME = "Herbaceous"
+      return(x[ind_x,])
+    }
+      x$CLASS_NAME = "Herbaceous"
+      return(x)
+}
+herbaceous_1 = lapply(herbaceous_permanent_m2 , query_random)
+herbaceous_2 = lapply(herbaceous_periodic_w_vegetation ,query_random)
+```
 
 
 ## 3.5 Non - vegetated
@@ -532,39 +500,31 @@ ggplot(trajectories_no_vegetated, aes(x=time, y=NDVI, fill=class)) +
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
-
-### 3.5.1 interquantile range
+### 3.5.1 Interquantile range
 
 since sparse vegetation and bare rocks depic ndvi values larger than cero I will take them out of the sampling.
 
 ```{r}
-query_dataset_no_vegetated = dataset[dataset$DESCRICAO %in% c("3.3.1.01.1 Praias, dunas e areais interiores") 
-                                                   ,]
-non_vegetated_m1 = removing_outliers(query_dataset_no_vegetated , methodo = c("model_1"),day_shoot,pivot = "DESCRICAO")
+query_dataset_no_vegetated = dataset[dataset$CLASS_NAME %in% c("Non_vegetated") ,]
+non_vegetated_m1 = removing_outliers(query_dataset_no_vegetated , methodo = c("model_1"),day_shoot,pivot = "CLASS_NAME")
 df_non_vegetated_m1 = dataframe_ggplot(non_vegetated_m1)
 ggplot(df_non_vegetated_m1, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
+    geom_boxplot()
 ```
-### 3.5.2 Summary
+### 3.5.2 central means
 
 ```{r}
-change_name_class = function(x) {
-  x$DESCRICAO = "Non_vegetated"
-  return(x)
-  }
-non_vegetated_m2 = lapply(non_vegetated_m1, change_name_class)
-#graphic with the second cleaning technique
-out_barchar = func_barchar(non_vegetated_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+non_vegetated_m2 = removing_outliers(query_dataset_no_vegetated , methodo = c("model_2"),day_shoot,pivot = "CLASS_NAME")
+df_non_vegetated_m2 = dataframe_ggplot(non_vegetated_m2)
+ggplot(df_non_vegetated_m2, aes(x=time, y=NDVI, fill=class)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
+    geom_boxplot() 
 ```
-
 
 ## 3.6 Water
 
-Class water is composed for several categories, I want to explore how many samples we have per class using as reference the 1000 we have.
+Class water is composed for several categories, I want to explore how many samples we have per class using as reference 1000 we have.
 
 ```{r}
 dataset_water = dataset[dataset$CLASS_NAME == "Water" ,] 
@@ -578,43 +538,35 @@ ggplot(data=df_water , aes(x=Var1, y=Freq)) +
 ```
 
 
-Since the spectral response defined by the pixel obeys to the predominant land cover type around the point label and not necessarily to the type which the point is representing, it is advisable to get rid of those points of water where I pressume the water can be hardly identified for this sensor due to their size. In this sense, I will take the following categories out: charcas (puddle), reservatorios de represas (dams), lagos interiores naturais (inland natural lakes), lagos and lagoeas interiores artificiais (inland artificial lakes) and canais artificias (artificial channels).
 
-Let's explore how the rest of categories looks like.
+### 3.6.1 Interquantile range
 
 ```{r}
-query_dataset_water = dataset[dataset$DESCRICAO %in% c("5.2.2.01.1 Desembocaduras fluviais" , "5.1.1.01.1 Cursos de água naturais", "5.1.2.02.1 Reservatórios de barragens" ),-1]
-
-trajectories_water  = trajectories_boxplot(query_dataset_water, day_shoot)
-ggplot(trajectories_water, aes(x=time, y=NDVI, fill=class)) + 
+query_dataset_water = dataset[dataset$CLASS_NAME %in% c("Water"),]
+water_m1 = removing_outliers(query_dataset_water , methodo = c("model_1"),day_shoot)
+df_water_m1 = dataframe_ggplot(water_m1)
+ggplot(df_water_m1, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-### 3.6.1 standard deviation
-
+### 3.6.2 central means
 ```{r}
-query_dataset_water = dataset[dataset$DESCRICAO %in% c("5.2.2.01.1 Desembocaduras fluviais" , "5.1.1.01.1 Cursos de água naturais", "5.1.2.02.1 Reservatórios de barragens" ),]
 water_m2 = removing_outliers(query_dataset_water , methodo = c("model_2"),day_shoot)
 df_water_m2 = dataframe_ggplot(water_m2)
 ggplot(df_water_m2, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
+#lapply(water_m2, len_x)
 ```
 
-### 3.6.2 Summary
-
-```{r}
-#graphic with the second cleaning technique
-out_barchar = func_barchar(water_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-```
 
 ## 3.7 Sealed
 
-Here class sealed is composed for different ccategories. Let's have a look of how many samples we have per category.
+
+Since the spectral response defined by the pixel obeys to the predominant land cover type around the point label and not necessarily to the type which the point is representing, it is advisable to get rid of those points of sealead where I pressume there is mixture with vegetation. 
+
+Here class **sealed** is composed for different categories. Let's have a look of how many samples we have per category.
 
 ```{r}
 dataset_sealed = dataset[dataset$CLASS_NAME == "Sealed" , ]
@@ -629,22 +581,33 @@ ggplot(data=df_sealed , aes(x=Var1, y=Freq)) +
 let's see the trajectories
 
 ```{r }
-query_dataset_sealed = dataset[dataset$DESCRICAO %in% c("1.2.2.01.1 Rede viária e espaços associados",
-                                                        "1.2.1.01.1 Indústria",
-                                                        "1.1.1.02.1 Tecido urbano contínuo predominantemente horizontal"),-2]
+dataset_sealed = dataset[dataset$CLASS_NAME == 'Sealed',-1]
 
-trajectories_sealed  = trajectories_boxplot(query_dataset_sealed , day_shoot)
+trajectories_sealed  = trajectories_boxplot(dataset_sealed , day_shoot)
 ggplot(trajectories_sealed, aes(x=time, y=NDVI, fill=class)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
     geom_boxplot() 
 ```
 
-### 3.7.1 Standard deviation
+### 3.7.1 Interquantile range
 
 ```{r}
-query_dataset_sealed = dataset[dataset$DESCRICAO %in% c("1.2.2.01.1 Rede viária e espaços associados",
-                                                        "1.2.1.01.1 Indústria",
-                                                        "1.1.1.02.1 Tecido urbano contínuo predominantemente horizontal"),]
+dataset_sealed = dataset[dataset$CLASS_NAME == 'Sealed',]
+query_dataset_sealed = dataset_sealed[!(dataset_sealed$DESCRICAO %in% c("1.1.2.01.1 Tecido urbano descontínuo",
+                                                        "1.1.2.02.1 Tecido urbano descontínuo esparso",
+                                                        "1.2.1.03.1 Instalações agrícolas"
+                                                        )),]
+sealed_m1 = removing_outliers(query_dataset_sealed , methodo = c("model_1"),day_shoot)
+df_sealed_m1 = dataframe_ggplot(sealed_m1)
+ggplot(df_sealed_m1, aes(x=time, y=NDVI, fill=class)) + 
+   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
+    geom_boxplot() 
+```
+
+
+### 3.7.2 Central means
+
+```{r}
 sealed_m2 = removing_outliers(query_dataset_sealed , methodo = c("model_2"),day_shoot)
 df_sealed_m2 = dataframe_ggplot(sealed_m2)
 ggplot(df_sealed_m2, aes(x=time, y=NDVI, fill=class)) + 
@@ -652,42 +615,11 @@ ggplot(df_sealed_m2, aes(x=time, y=NDVI, fill=class)) +
     geom_boxplot() 
 ```
 
-### 3.7.1 Summary
-
-```{r}
-#graphic with the second cleaning technique
-out_barchar = func_barchar(sealed_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-```
-
 ## 3.8 Wetlands
 
-As it was done with water, I will keep only the time series which values at least one negative. This condition will allow me to leave samples that over time changed by other land cover type no intersected by water.
 
+## 3.8.1 Central means
 ```{r }
-dataset_wetlands = dataset[dataset$CLASS_NAME == "Wetlands",-1]
-trajectories_wetlands  = trajectories_boxplot(dataset_wetlands , day_shoot)
-ggplot(trajectories_wetlands , aes(x=time, y=NDVI, fill=class)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.8.1 interquantile range
-
-```{r}
-dataset_wetlands = dataset[dataset$CLASS_NAME == "Wetlands",]
-wetlands_m1 = removing_outliers(dataset_wetlands , methodo = c("model_1"),day_shoot)
-df_wetlands_m1 = dataframe_ggplot(wetlands_m1)
-ggplot(df_wetlands_m1 , aes(x=time, y=NDVI, fill=class)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 12),legend.position="bottom",legend.text=element_text(size=12)) +
-    geom_boxplot() 
-```
-
-### 3.8.2 Standart deviation
-
-```{r}
 dataset_wetlands = dataset[dataset$CLASS_NAME == "Wetlands",]
 wetlands_m2 = removing_outliers(dataset_wetlands , methodo = c("model_2"),day_shoot)
 df_wetlands_m2 = dataframe_ggplot(wetlands_m2)
@@ -696,28 +628,21 @@ ggplot(df_wetlands_m2 , aes(x=time, y=NDVI, fill=class)) +
     geom_boxplot() 
 ```
 
-### 3.8.3 Summary
+
+# 4. Multitemporal data interquantile range analysis
 
 ```{r}
-#graphic with the second cleaning technique
-out_barchar = func_barchar(wetlands_m2)
-ggplot(data = out_barchar , aes(x=time, y=value, fill = L1)) +
-  geom_bar(stat="identity",position="dodge") +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-```
 
+datafinal = list(query_trees_m2, query_bushes_m2, ricefields_m2, 
+                 herbaceous_1, herbaceous_2, non_vegetated_m2,
+                 water_m2, sealed_m2, wetlands_m2)
 
-# 4. Multitemporal data
-
-```{r}
-datafinal = list(query_trees_tr, query3_veg_asociation,query_agricultural_tr,temporalcrops_m3,non_vegetated_m2,water_m2,sealed_m2,wetlands_m2)
-
-out= NULL
+out = NULL
 merge_list_class = function(x){
   for(i in 1:length(x)){
     df0 = cbind(names(x[i]),x[[i]])
     colnames(df0) = c("time","CLASS_NAME","NDVI", "geometry")
-    out = rbind(df0,out)
+    out = rbind(df0, out)
   }
   return(out)
 }
@@ -773,14 +698,40 @@ for(i in unique(out_conteo$time)){
 
 out_conteo$Class = factor(out_conteo$Var1, factor_classes)
 #colors in the graphic
-colors_classes = c("green4", "green3", "green1", "springgreen3", "springgreen1", "darkolivegreen3", "turquoise","plum2","blue2")
+colors_classes = c("green4","gold1", "green3", "green1", "springgreen3", "springgreen1", "darkolivegreen3", "turquoise","plum2","dodgerblue2")
 names(colors_classes) = factor_classes
 
 ggplot(data=out_conteo, aes(x=time, y=Freq, fill= Class)) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 13), legend.text=element_text(size=15)) +
   geom_bar(stat="identity") +
   scale_fill_manual("Classes", values = colors_classes) +
-  geom_text(aes(label = Freq,y = pos),size = 2)
+  geom_text(aes(label = Freq,y = pos),size = 6)
 
 ```
+
+```{r}
+#total number of data per image
+func_sum_samples = function(x){sum(x$Freq)}
+as.data.frame(lapply(split(out_conteo,out_conteo$time),func_sum_samples))
+```
+### exporting some results
+
+```{r}
+
+#folder = '/home/user/Documents/TESISMASTER/VECTOR/training_data_static_model_centralmeans/'
+
+#for(k in unique(outfinal$time)){
+#  ind_t = which(outfinal$time == k)
+#  create_folder = paste0(folder,as.character(k))
+#  dir.create(create_folder)
+#  sf::write_sf(outfinal[ind_t,c("CLASS_NAME")], paste0(create_folder,"/training_samples_cm.shp"))
+#}
+
+```
+
+
+
+
+
+
 

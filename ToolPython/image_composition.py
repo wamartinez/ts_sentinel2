@@ -1,7 +1,7 @@
 #I want to to make compositions with different bands, here I will import images from one folder and I will stack them.
 
-#  --name_raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions/IM_20170115_comp.tiff
-#  --dataset /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Spring/IM_20170115/images
+#  --name_raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions_432/IM_20170927/CP432_IM_20170927.tiff
+#  --dataset /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions_432/IMAGES
 
 import argparse
 from osgeo import gdal
@@ -9,6 +9,7 @@ import numpy as np
 import os
 
 #parsing
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name_raster", help = "Name of the raster")

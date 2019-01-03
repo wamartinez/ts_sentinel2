@@ -1,5 +1,5 @@
 #This script read the files in txt format and import the text in list o numpy
-# --pathfiles /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Images
+# --pathfiles /home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_Filter
 
 
 import argparse
@@ -23,7 +23,7 @@ print(folders)
 y = {}
 w=0
 for j in folders:
-    file = os.path.join(j,'validation_model_st.txt')
+    file = os.path.join(j,'validation_training_samples6_svm_w_queryB_85.txt')
     f = open(file, 'r')
     #read lines
     f1 =  f.readlines()
@@ -45,5 +45,5 @@ for j in folders:
 df = pd.DataFrame(y)
 
 print(df)
-file_name = '/home/user/Documents/TESISMASTER/csv/accuracies_class_passivelearning.csv'
+file_name = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/validation_training_samples6_svm_w_queryB_85.csv'
 df.to_csv(file_name, sep='\t')
