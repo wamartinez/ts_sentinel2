@@ -7,7 +7,7 @@ The purpose of this site is to document the process of analysis in python and R 
 Mapping Land cover land use (LULC) is a fundamental task in any kind of environmental, cultural and political study, since it provides baseline for governments to undertake and monitor policies that look for sustainable livelihoods in harmony with the ecosystems. After almost 4 decades of technological evolution and powerful algorithms in mapping LULC by using earth
 observation, the research continues looking for adaptation of new approaches that lead to improve its accuracy and protocols to make its update operationally efficient. Advancing in the former approaches may also benefit from the big data available through new technology. For example, nowadays with the Copernicus program, Sentinel 2, we account –like never before– with high spatial and temporal resolution imagery under open data policy.
 
-Well,I have creted the following documentation, so that you can have a look of what I am doing for my master thesis.
+Well,I have created the following documentation, so that you can have a look of what I am doing for my master thesis.
 
 1. Explorative analysis of COS training data set [here]( https://williamamartinez.github.io/ts_sentinel2/ToolR/How_to_remove_outliers_in_time_series.html)
 
