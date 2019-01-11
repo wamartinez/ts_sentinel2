@@ -92,7 +92,7 @@ ggplot(data=table1 , aes(x=Var1, y=value)) +
 ```
 
 # Classifications in composites
-
+I would like to arrange an appointment to discuss
 
 ```{r cars}
 #devtools::install_github("r-spatial/stars")

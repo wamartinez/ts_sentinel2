@@ -12,3 +12,24 @@ knitr::opts_chunk$set(echo = TRUE)
 ## R Markdown
 
 
+```{r cars}
+#devtools::install_github("r-spatial/stars")
+#devtools::install_github("r-spatial/sf")
+library(raster)
+library(stars)
+tif1 = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICCION/IM_SUMMERB_75M6.tif"
+tif2 = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICCION/IM_WINTERB_75M6.tif"
+x1 <- tif1 %>% read_stars 
+#x2 <- tif2 %>% read_stars 
+par(mar = rep(0,4))
+colores = c("red","black","orange","green","#006600", "pink","yellow","#800000","blue","#33B5FF")
+
+classes = c("Bushes_and_shrubs" ,"Coniferous_trees","Eucalyptus_trees", "Herbaceous", "Holm_and_Cork_Trees",
+  "Non_vegetated", "Rice_fields", "Sealed", "Water","Wetlands")
+
+image(x1, col = colores)
+legend("topright", legend = classes,col = colores,pch= rep(16,10))
+
+#image(x2, col = colores)
+#legend("topright", legend = classes,col = colores,pch= rep(16,10))
+```

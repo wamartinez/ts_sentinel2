@@ -1,8 +1,8 @@
 
 library(sf)
 
-file_name = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/VECTOR/Vector_Spring_composite/training_samples6_rf_w_queryB_75.shp"
-file_out = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/VECTOR/Vector_Spring_composite/training_samples6_rf_w_queryB_75_out.shp"
+file_name = "/home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_filter_size3/2_Summer/training_samples6_rf_w_queryA_70.shp"
+#file_out =  "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/VECTOR/COMPOSITES/4_Winter/training_samples6_rf_w_queryA_70_out.shp"
 
 df = sf::read_sf(file_name)
 

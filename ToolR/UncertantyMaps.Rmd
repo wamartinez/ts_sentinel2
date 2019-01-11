@@ -4,13 +4,13 @@ author: "William Martinez"
 date: "January 1, 2019"
 output:
   html_document:
-    theme: journal
+    theme: lumen
     toc: yes
     toc_depth: 4
-    toc_float: yes
-  word_document:
-    toc: yes
-    toc_depth: '4'
+    toc_float: yes  #float the table of contents to the left
+    number_sections: true
+    code_folding: hide
+    df_print: paged
 fig_caption: yes
 ---
 <style>
@@ -24,13 +24,149 @@ library(knitr)
 library(kableExtra)
 ```
 
-# 1. Summary
+# Data
 
-The accuracy of the training set in the supervised classification is essential to perform good mapping. However, in real world projects this assumption is hard to achieve since the sampling usually come from different sources regarding the imagery to classify. For example, in this project our reference COS data come from aerial interpretation that turns out the sampling for the classification of Sentinel 2 imagery of 2017 in central of Portugal. Besides that. COS data differs in date respect the imagery, since this was collected during 2015. In this sense, different sources of reference data and different dates turn out in a misregistration of what truly was happening in the ground. Therefore, I propose a iterative learning workflow based on entropies where we can trace the most informative sampling that contribute to a better mapping of certain image for certain period. Moreover, this thesis, under the new paradigm in remote sensing of the best available pixel (BAP) composites (White et al., 2014), proposes to compose images by season. This approach generally benefits classification task in areas with frequent cloudy conditions. However, in this thesis beyond that purpose, it also look for reducing the spatial variation of the crop rotation between an image and another.
 
-# 2. Classification over imagery 2017
+## Imagery
 
-## 2.1 Performance of the classification using different assumptions about the data
+
+```{r , message=FALSE}
+library(stars)
+library(raster)
+folders_path = '/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/STATIC/IM_20170729'
+
+read_raster = function(x){
+  y = raster::raster(paste0(folders_path,"/",x))
+  names(y) = "IM"
+  return(y)
+}
+list_raster = lapply(list.files(folders_path)[c(1,4,10,11)],read_raster)
+rasters_stack = stack(list_raster)
+names(rasters_stack)  = c("BLUE","B05","B8A","NDVI")
+
+#converting to stars object
+rasters_stars = st_as_stars(rasters_stack)
+plot(rasters_stars)
+```
+
+## Composites
+
+
+
+
+## Training data
+
+
+
+```{r , message=FALSE, warning= FALSE, message= FALSE}
+#importing shapefile
+library(sf)
+library(tmap)
+path_training = '/home/user/Documents/TESISMASTER/VECTOR/Raw_trainingdata/training_samples6.shp'
+path_studyarea = '/home/user/Documents/TESISMASTER/VECTOR/CartoBase/StudyArea.shp'
+
+sampling = sf::read_sf(path_training)
+study_area = sf::read_sf(path_studyarea)
+tmap_mode("view")
+map_data <-
+  tm_shape(sampling) + 
+      tmap::tm_dots('CLASS_NAME') +
+  tm_shape(study_area) + 
+      tmap::tm_borders(col = "red") +
+  tm_layout(basemaps = c('OpenStreetMap'))
+
+map_data
+
+```
+
+
+# Uncertainty maps
+
+
+```{r , message=FALSE}
+folder_uncertainty = '/home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_filter_size3'
+#calling shapefiles with the uncertainty attribute. This shapefiles are located in different folders depending the date
+func_read_shp_uncertainty = function(x){
+  path = paste0(folder_uncertainty,"/",x,"/",'training_samples6_rf_w.shp')
+  df_shape = sf::read_sf(path)
+  df_shape_weights =  df_shape[df_shape$CLASS_NAME == "Rice_fields","weights"]
+  df_shape_weights$time = x
+  return(df_shape_weights)
+}
+list_dfshape_uncertainty = lapply(list.files(folder_uncertainty),func_read_shp_uncertainty)
+
+df_uncertainty = do.call("rbind", list_dfshape_uncertainty)
+df_uncertainty$size = exp(df_uncertainty$weights*5)*0.01
+
+#shape adminsitrative
+
+path_shape_administrative = '/home/user/Documents/TESISMASTER/VECTOR/CartoBase/Portugal.shp'
+shape_administrative = sf::read_sf(path_shape_administrative)
+
+#plot
+library(ggplot2)
+library(magick)
+map_uncertainty <-
+  tm_shape(df_uncertainty) +
+    tmap::tm_symbols(size = 'size', col = 'weights', shape = 16,
+                     breaks = c(seq(0.3, 1, by=0.15)),
+                     legend.size.show = FALSE,
+                     title.col = "Informativeness", 
+                     legend.format = list(text.align="right", text.to.columns = TRUE)) +
+  tm_facets(along = "time") +
+  tm_compass(type = "8star", position = c("right", "top")) +
+  tm_scale_bar(breaks = c(0, 10, 20), size = 1, position = c("right", "bottom"))
+#NO RUN  
+tmap_animation(map_uncertainty, filename="Uncertainties_Rice_fields.gif", delay=300)
+```
+
+## Examples
+
+### Coniferous
+
+![Uncertainty for coniferous](./img_informativeness/Uncertainties_coniferous.gif)
+
+
+![Coniferous](./img_informativeness/Coniferous_trees_example.jpg)
+
+
+
+
+
+
+### Sealed
+
+![Uncertainty for sealed.](./img_informativeness/Uncertainties_sealed.gif)
+
+![Coniferous](./img_informativeness/sealed_example.jpg)
+
+
+
+## Herbaceous
+
+![Uncertainty for sealed.](./img_informativeness/Uncertainties_Herbaceous.gif)
+![Coniferous](./img_informativeness/herbaceous_example.jpg)
+
+
+### Rice fields
+
+![Uncertainty for coniferous](./img_informativeness/Uncertainties_Rice_fields.gif)
+
+
+```{r , message=FALSE}
+library(ggpubr)
+library(reshape2)
+data_training_descrip = reshape2::melt(table(sampling$CLASS_NAME))
+colnames(data_training_descrip) = c("CLass","Number samples")
+stable.p <- ggtexttable(data_training_descrip , rows = NULL, 
+                        theme = ttheme("mBlue"))
+stable.p
+```
+
+
+# Classification over imagery 2017
+
+## Performance of the classification using different methods for sampling data.
 
 On the one hand, as I said before, the proposal is to identify those samples that better fit the need of the imagery, so that, samples that are informative for certain image in certain period can be not informative in another period. At DGT the proposal for selecting the best labels of certain image rely in the mechanism which ndvi work in. For example, non-vegetated class tend to depict near infrared reflectance somehow larger than the red. This slight difference turns out in low positive values of NDVI. This previous knowledge about the behavior of ndvi for certain land cover types led to apply it as measurement to identify possible anomaly data. Therefore, to summarize the methodology, we assume a label corresponds with the ground as long as this match with the usual values of ndvi for that class (centrality) and also range between certain thresholds defined by the literature.
 
@@ -47,12 +183,11 @@ So far I have compared the results of the methodologies using random forest as c
 day_shoot = c("2017/01/15", "2017/04/05", "2017/05/25", "2017/06/14","2017/07/29",
               "2017/08/13","2017/09/12", "2017/10/12", "2017/11/16", "2017/12/16")
 
-path_file = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_models.csv'
+path_file = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_models_A.csv'
 #reading file with the final results of classifications
 df = read.csv(path_file,sep = ",",header = T)
 #CAlling only important models to show
 df_models = df[df$Model %in% c("SVM,  85% Informative","RF,  85% Informative","RF, Central means, 80-85% Sampling", "RF,  100% Sampling"),]
-library(ggplot2)
 #graphic in boxplot form, the idea is to show how stable is the classification per assumption
 ggplot(df_models , aes(x=Time, y=OA, fill = Model)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10))  +
@@ -60,24 +195,24 @@ ggplot(df_models , aes(x=Time, y=OA, fill = Model)) +
 ```
 
 
-## 2.2 Evaluating accuracy per class
+## Evaluating accuracy per class
 
-The attempt of the previous graphic was to see that the proposed methodology shows better results than previous attempts done at DGT. In that graphic I considered only 85% of the lebels more informative per image. However, I would like to evaluate the performance per class under different scenarios of informativeness of the reference data COS. For this, I brought the image with the best overall accuracy in average, that is July 29. After removing data in a balance way up to the first quartil of each class, that is, 2500 samples (25%), we can see that no all the classes are equally benefited with the reduction of the sampling. For example, the range of overall accuracies after removing data for wetlands is quite shorter compared with the Herbaceous land cover. We may identify here, that some classes are more static than others, and thus, we can see that some classes are more impacted by the fact of no only containing anomaly data, but also, labels that eventually can change to another class for certain time and return to their original state in another time.
+The attempt of the previous graphic was to see that the proposed methodology shows better results than previous attempts done at DGT. In that graphic I considered only 85% of the lebels more informative per image. However, I would like to evaluate the performance per class under different scenarios of informativeness of the reference data COS. For this, I brought the image with the best overall accuracy in average, that is July 29. After selecting data per percentage of informativeness, we can see that no all the classes are equally benefited with the reduction of the sampling. For example, the range of overall accuracies after removing data for wetlands is quite shorter compared with the Herbaceous land cover. We may identify here, that some classes are more static than others, and thus, we can see that some classes are more impacted by the fact of no only containing anomaly data, but also, labels that eventually can change to another class for certain time and return to their original state in another time.
 
-Another question that can arise here, is how much data must be out to achieve a good classification?. Well this thesis highlight the importance of selecting the most informative data that fit to the need of the image in certain period. However, it is expected that as we start leaving more and more labels less informative out, the accuracy in the classification will increase at some point that the classifier predict perfectly the retained reference data that they consider is pure ( taking out samples with mixture of classes that are also quite important in the classification). In this sense, removing data must be handled carefully since we don't want bias in our results, especially when it come to taking about classifying about 120 million of pixels using 10.000 samples as reference that does not even represent the 0.001% of the data.
+Another question that can arise here, is how much data must be out to achieve a good classification and still have unbiased results?. Well this thesis highlight the importance of selecting the most informative data that fit to the need of the image in certain period. However, it is expected that as we start leaving more and more labels less informative out, the accuracy in the classification will increase at some point that the classifier predict perfectly the retained reference data that they consider is pure ( taking out samples with mixture of classes that are also quite important in the classification). In this sense, removing data must be handled carefully since we don't want bias in our results, especially when it come to taking about classifying about 120 million of pixels using 10.000 samples as reference that does not even represent the 0.001% of the data.
 
 For my classification I decided to keep only the 75% of the labels more informative per class.
 
 ```{r }
-path_file_effectiveness = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_Informativeness.csv'
+path_file_effectiveness = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_Informativeness_A.csv'
 #reading file with the final results of classifications
 df_classes = read.csv(path_file_effectiveness,sep = ",",header = T)
-#data frame with the results without filter
-df_classes_wf = df_classes[df_classes$Filter=="No",2:4]
 #defining names of the classes
 classes_lc = c('Bushes and shrubs', 'Coniferous trees', 'Eucalyptus trees','Herbaceous', 'Holm and Cork Trees', 
             'Non vegetated','Rice fields', 'Sealed', 'Water', 'Wetlands')
-df_classes_wf$Class = as.factor(classes_lc[df_classes_wf$Class])
+df_classes$Class = as.factor(classes_lc[df_classes$Class])
+#data frame with the results without filter and date july 29 (best results)
+df_classes_wf = df_classes[df_classes$Filter=="F0" & df_classes$Time == "2017-07-29",]
 #factors for the percentage
 df_classes_wf$Percentage = as.factor(df_classes_wf$Percentage)
 #ggplot
@@ -86,91 +221,86 @@ ggplot(df_classes_wf, aes(x=Class, y=Accuracy, fill = Percentage)) +
   geom_boxplot()
 ```
 
-## 2.3 Evaluating performance of classification using filter
+
+
+## Evaluating performance of classification using spatial filters
 
 After visual inspection of those lees informative samples (see thesis). I was interested in some samples of coniferous trees and Holm and cork trees that in fact were over the class, according with imagery of google earth. However, what it happens is that there are labels that eventually do not overlap precisely the trees, leaving space to be mix with other classes and represent something totally different. Therefore, under this scenario I decided to apply a filter over all the imagery to see if can reduce that noisy and correct problems of geolocation. The filter correspond to a low pass filter and the stat is a median. That is, the median over a window of 3 pixels around. The results are shown in the following graphic, where readers can see how important is for this for the classification.
 
 ```{r }
 #data frame with the results without filter
-df_classes_75 = df_classes[df_classes$Percentage == 75,]
-df_classes_75$Class = as.factor(classes_lc[df_classes_75$Class])
+df_classes_70 = df_classes[df_classes$Percentage == 70 & df_classes$Time == "2017-07-29", ]
+df_classes_70$Class = as.factor(classes_lc[df_classes_70$Class])
 #factor model
-filter_level = c("Without filter 75%","With filter 75%")
-df_classes_75$Filter = as.factor(filter_level[df_classes_75$Filter])
+df_classes_70$Filter = factor(df_classes_70$Filter, levels = c('F0','F3'))
 
 #ggplot
-ggplot(df_classes_75, aes(x=Class, y=Accuracy, fill = Filter)) + 
+ggplot(df_classes_70, aes(x=Class, y=Accuracy, fill = Filter)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10))  +
   geom_boxplot()
 ```
 
-# 3. Exploring composites
+# Exploring composites
 
 In the same frame of the analysis using only one image for classification. I want to see if besides the treatment over the reference data, the composition of images also can benefit the classification. In this sense, I have compose the imagery for four seasons, using the following imagery:
 
 on description…
 
-```{r }
-#Dates of the images
-Season_shoot = c("Spring","Summer","Autumn","Winter")
-path_file = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_models_composites.csv'
-#reading file with the final results of classifications
-df_composite = read.csv(path_file,sep = ",",header = T)
-df_composite$Season = factor(df_composite$Season, Season_shoot)
-df_composite_models = df_composite[df_composite$Filter == "No Filter",]
-```
+## Evaluating Accuracy per class in composites and single imagery
 
-
-## 3.1 Performance of classification at 85% of informativeness
-
-Well, to continue being fair in the comparison in which assumption is better than another. I will select 85% of the most informative data for four composites representing different seasons during the year 2017. I applied the same classifiers, random forest and support vector machine. However, the results are not encouraging since the performance looks similar to the best results using only one image and a filter. In this sense, I decided to apply also a filter to see if the results could improve.  
-
-```{r }
-ggplot(df_composite_models  , aes(x=Season, y=Accuracy, fill = Model)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10))  +
-  geom_boxplot()
-```
-
-## 3.2 Performance of filters in composites using support vector machines
-
-Well, after applying the filter the results abruptly increase and overcome the overall accuracies using single imagery. This scenario implies that in fact composites can benefit the process of classification, not only for the fact of working with pixels free of clouds but also with pixels with a better spatial representation of what is happening in the ground, this as long as we use a correct filter to reduce the noise for geolocation of the labels.
-
-```{r }
-df_composite_svm = df_composite[df_composite$Model == "SVM , 85% Informative" ,]
-#Graphic
-ggplot(df_composite_svm  , aes(x=Season, y=Accuracy, fill = Filter)) + 
-   theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10))  +
-  geom_boxplot()
-```
-
-## 3.3 Evaluating Accuracy per class in composites
-
-Under the assumption of 85% most informative data we have shown that composites also can benefit the classification. However,in this project for the final classifications I will work with the 75% of third quartile of the most informative data. The comparison between the best results obtained using single imagery vs best results using composites are shown in the following graphic. The composites show slightly better performance in most of the classes except for herbaceous. Probably selecting the best pixel available using max NDVI may be not the best approach. However, this escenario truly show how importatn may be continue researching in this field.
 
 
 ```{r }
-path_file_inf_comp = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_informativeness_composites.csv'
-#reading file
-df_composites = read.csv(path_file_inf_comp,sep = ",",header = T)
-#slicing only results for 75% informative sampling for summer and 2017-07-29
-df_composite_comparision = df_composites[df_composites$Percentage == "75",]
-#labels of classes
-df_composite_comparision$Class = as.factor(classes_lc[df_composite_comparision$Class])
-ggplot(df_composite_comparision , aes(x=Class, y=Accuracy, fill = Season)) + 
+#slicing only results for 75% informative sampling for summer 
+df_composite_comparision = df_classes[df_classes$Percentage == "70" & df_classes$Filter == 'F3' & df_classes$Time %in%  c("Spring","Summer","Autumn", "Winter"),]
+df_composite_comparision$Time = factor(df_composite_comparision$Time , levels = c("Spring","Summer","Autumn", "Winter"))
+#grapgic
+ggplot(df_composite_comparision , aes(x=Class, y=Accuracy, fill = Time)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10)) + 
   geom_boxplot()
 ```
 
-To measure precision and accuraccy for the correct classification of the data that suppose to explain the land cover tyepes covered by the image is going to be evaluated using the score kappa. kappa is .... a score kappa close to overall accuraccy implies a strong agrreement of waht the producer and user classify.
+## Assesment of sample selection in composites and single imagery
 
 
 ```{r }
-file_kappa_oc = '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_kappa_oa.csv'
+file_comparision_comp_static =  '/home/user/Documents/TESISMASTER/csv/Results/Validation_models/Evaluation_models_composites.csv'
 #reading file
-df_stat = read.csv(file_kappa_oc, sep = ",")
-ggplot(df_stat , aes(x=Time, y=Value, fill = Stat)) + 
+comparision_comp_static = read.csv(file_comparision_comp_static, sep = ',')
+#organizing factors
+comparision_comp_static$Time = factor(comparision_comp_static$Time, levels = c("2017-04-05","Spring","2017-07-29","Summer","2017-09-12","Autumn","2017-12-16", "Winter"))
+#plot
+ggplot(comparision_comp_static , aes(x=Time, y=Accuracy, fill = Season)) + 
    theme(axis.text.x = element_text(angle = 90, hjust = 1, size= 12),legend.position="bottom", legend.text=element_text(size=10)) + 
   geom_boxplot()
 ```
+
+## An interactive map of the classification of summer composite
+
+summer
+
+```{r , message=FALSE, warning= FALSE, message= FALSE}
+#importing shapefile
+path_tif_summer = '/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICTION/COMPOSITES/SUMMER_70AF3.tif'
+label_classes = c("Eucalyptus_trees","Herbaceous","Sealed", "Non_vegetated","Rice_fields","Holm_and_Cork_Trees","Coniferous_trees", "Wetlands",
+"Water","Bushes_and_shrubs" )
+tif_classification_summer = raster::raster(path_tif_summer)
+values(tif_classification_summer) = as.factor(values(tif_classification_summer))
+pal10 <- c("#33A02C", "#B2DF8A", "#FF0000",  "#FDBF6F", "#999999", "#556E19","#003200" , "#A6CEE3","#1F78B4", "#C133FF")
+tmap_mode('view')
+map_time <-
+  tmap::tm_shape(tif_classification_summer) +
+    tmap::tm_raster("SUMMER_70AF3",palette = pal10, labels = label_classes) +
+      tmap::tmap_options(max.raster = c(plot = 10e6, view = 10e6)) + 
+  tm_layout(basemaps = c('OpenStreetMap',"Esri.WorldImagery"))
+
+map_time 
+```
+
+
+
+
+
+
 
 
