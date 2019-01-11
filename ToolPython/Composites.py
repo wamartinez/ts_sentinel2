@@ -5,8 +5,8 @@ import numpy as np
 from osgeo import ogr, gdal
 import lulc
 
-#### --input  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi/Winter_composite
-#### --output /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi/result
+#### --input   /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/COmposite_test
+#### --output /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/result
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

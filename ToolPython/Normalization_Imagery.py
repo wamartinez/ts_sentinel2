@@ -8,8 +8,8 @@ import lulc
 import numpy as np
 from scipy import misc
 
-# --folder_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositer_max_ndvi_Filter/Autumn_composite
-# --output_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_ST_Filter
+# --folder_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composite_max_ndvi_SS_Filter3/SS_Composite
+# --output_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composite_max_ndvi_ST_SS_Filter3
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

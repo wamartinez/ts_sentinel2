@@ -12,7 +12,7 @@ import pandas as pd
 #====================================
 # "training_samples3.shp"
 
-folder_path = '/home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_Filter'
+folder_path = '/home/user/Documents/TESISMASTER/VECTOR/Traning_data_composites_max_ndvi_ST_SS_F3'
 list_folder_path = [os.path.join(folder_path , i) for i in os.listdir(folder_path)]
 list_folder_path.sort()
 for i in list_folder_path:

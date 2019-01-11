@@ -9,8 +9,8 @@ import numpy as np
 #well the idea of this is reproduce the shapefiles with the information of the raster in automatic way
 
 #list of shapefiles
-files_vector= '/home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_Filter'
-files_raster= '/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_ST_Filter'
+files_vector= '/home/user/Documents/TESISMASTER/VECTOR/Traning_data_composites_max_ndvi_ST_SS_F3'
+files_raster= '/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composite_max_ndvi_ST_SS_Filter3'
 
 #list shapefiles
 list_shapefiles = [os.path.join(files_vector,i,"training_samples6.shp") for i in os.listdir(files_vector)]

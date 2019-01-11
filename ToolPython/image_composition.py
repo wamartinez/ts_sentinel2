@@ -1,7 +1,7 @@
 #I want to to make compositions with different bands, here I will import images from one folder and I will stack them.
 
-#  --name_raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions_432/IM_20170927/CP432_IM_20170927.tiff
-#  --dataset /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions_432/IMAGES
+#  --name_raster /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositions_12_11_4/IM_Summer12114_STF3.tiff
+#  --dataset /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_ST_Filter_size3/Summer_composite/temp
 
 import argparse
 from osgeo import gdal
@@ -46,7 +46,7 @@ print(out_fn)
 rows, cols, n_bands = bands_data.shape
 
 driver2 = gdal.GetDriverByName('GTiff')
-outd_ds = driver2.Create(out_fn, rows, cols,n_bands, gdal.GDT_Float32)
+outd_ds = driver2.Create(out_fn, cols, rows,n_bands, gdal.GDT_Float32)
 outd_ds.SetGeoTransform(gt)
 outd_ds.SetProjection(proj)
 
@@ -54,5 +54,5 @@ for j in range(1,n_bands+1):
     band_o = outd_ds.GetRasterBand(j)
     band_o.WriteArray(bands_data[:,:,j-1])
     band_o = None
-outd_ds =None
+outd_ds = None
 print('Done')

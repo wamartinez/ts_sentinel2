@@ -1,7 +1,7 @@
 #I want with this document to explore the accuraccies after validation of
 #all the imagery over the Time
 #240158
-###   --folder_path  /home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_Filter
+###   --folder_path  /home/user/Documents/TESISMASTER/VECTOR/Training_data_ImageryST
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix
@@ -32,7 +32,7 @@ print(list_folder_path)
 #create object for classication
 for i in list_folder_path:
     #preparing dataset
-    dataset = al.import_data(os.path.join(i,"training_samples6_rf_w_queryB_85.shp"))  #training_samples3_rf_w_query #training_samples_sm.shp
+    dataset = al.import_data(os.path.join(i,"training_samples6_rf_w_queryA_85.shp"))  #training_samples3_rf_w_query #training_samples_sm.shp
     data = dataset["data"].iloc[:,1:14]
     #weights = dataset["data"].weights
     col_names = data.dtypes.index.tolist()
@@ -45,11 +45,11 @@ for i in list_folder_path:
         "data":dataset_standard_df,
         "proj":dataset["proj"]
     }
-    #creatinf file where I will store global accuraccies
-    file_val = os.path.join(i,"validation_training_samples6_rf_w_queryB_85.shp.txt")  #validation_training_samples6_svm_w_queryB_85
+    #creating file where I will store global accuraccies
+    file_val = os.path.join(i,"validation_training_samples6_rf_w_queryA_85.txt")  #validation_training_samples6_svm_w_queryB_85
     f= open(file_val,"w+")
     #validation random selection cross validation
-    for j in range(0,20):
+    for j in range(0,50):
         accuracy = []
         kappa_score = []
         random = al.random_selection(dataset_standard,prob = 0.7, pivot= "CLASS_NAME")

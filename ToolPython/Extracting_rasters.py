@@ -1,7 +1,7 @@
 #take a folder with different raster files and extract the pixels accorising with the area of certain polygon
 
-#--rasters_input  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi_ST_Filter/Summer_composite
-#--rasters_output  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/Composites/Summer_composition
+#--rasters_input  /home/user/Documents/TESISMASTER/VECTOR/Training_data_composites_max_ndvi_ST_filter_size3/1_Spring
+#--rasters_output  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/COMPOSITES/Autumn_composite
 #--shapefile  /home/user/Documents/TESISMASTER/VECTOR/CartoBase/area_corte.shp
 
 

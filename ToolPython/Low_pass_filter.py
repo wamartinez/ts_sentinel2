@@ -10,8 +10,8 @@ import numpy as np
 from scipy import misc
 from scipy import ndimage
 
-# --folder_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composites_max_ndvi/Autumn_composite
-# --output_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Compositer_max_ndvi_Filter
+# --folder_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composite_max_ndvi_SS/SS_Composite
+# --output_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Composite_max_ndvi_SS_Filter
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -44,7 +44,7 @@ for i in list_raster:
     n_bads = raster_dataset.RasterCount
     band =  raster_dataset.GetRasterBand(1).ReadAsArray()
     #gaussian filter
-    blurred_band = ndimage.median_filter(band, size = 5)
+    blurred_band = ndimage.median_filter(band, size = 3)
     #path of the new image
     output = os.path.join(foutput, i)
     lulc.write_geotiff(output,blurred_band, gt, proj)

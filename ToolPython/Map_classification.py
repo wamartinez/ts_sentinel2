@@ -2,8 +2,8 @@
 #======================================================================
 #This script attempts to set baseline of the standart static approach
 #======================================================================
-# --train_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/VECTOR/Vector_Winter_composite/training_samples6_rf_w_queryB_75_out.shp
-# --raster_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/Winter_composite
+# --train_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/VECTOR/STATIC/IM_20170405/training_samples6_rf_w_queryA_70_out.shp
+# --raster_path  /home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/STATIC/IM_20170405
 #======================================================================
 #Parsing information
 #======================================================================
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 #=============================
 #Importing imagery from folder
 #=============================
-output_file = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICCION/IM_WINTERB_75M6.tif"
+output_file = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/PREDICTION/STATIC/IM_20171216_70AF3.tif"
 file_DEM = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/ZDEM/IM_2017_ZDEM_10m.tiff"
 file_Slope = "/home/user/Documents/TESISMASTER/IMAGES/TO_PROCESS_10m/Prediction/ZDEM/IM_2017_ZSLOPE_10m.tiff"
 #importing path of the raster files
