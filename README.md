@@ -2,7 +2,7 @@
 
 ## Intra-annual land cover mapping
 
-The purpose of this site is to document the process of analysis in python and R of the thesis titled "Automatic Training Sampling for Intra-annual Land Cover Mapping at Central of Portugal.". The thesis document can be found [here]( https://williamamartinez.github.io/ts_sentinel2/Document/Thesis_index_wm.pdf)
+The purpose of this site is to document the process of analysis in python and R of the thesis titled "Automatic Training Sampling for Intra-annual Land Cover Mapping at Central of Portugal.".
 
 # Abstract
 
