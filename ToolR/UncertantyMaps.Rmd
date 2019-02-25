@@ -1,5 +1,5 @@
 ---
-title: "A brief introduction of the automatic training sample extraction from old maps for intra-annual LULC Mapping at Central of Portugal"
+title: "A brief introduction of the results of the classification perfomance using automatic training sample extraction from old maps for intra-annual LULC mapping at central of Portugal"
 author: "William Martinez"
 date: "Feubrary, 2019"
 output:

@@ -10,6 +10,8 @@ Making operational efficient the production of Land Use Land cover (LULC) mappin
 
 The complete report can be found [here](https://williamamartinez.github.io/ts_sentinel2/Document/Thesis_index_wm.pdf)
 
-Moreover, this thesis had a focus on processing Sentinel 2 data products in Python and R.
+Readers interested in the used scripts in R and python to achieve the proposed objectives can find the following documents:
 
-Readers interested in the used scripts in R to achieve the proposed objectives can be found [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/UncertantyMaps.html)
+1. LULC classification using RF and SVM in python: a glance of static classification using sentinel 2 Imagery and extracted training sampling of Cos map 2015: [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/Classification_weighted_landcover.html)
+
+2. A brief introduction of the results of the classification performance using automatic training sample extraction from old maps for intra-annual LULC mapping at central of Portugal: [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/UncertantyMaps.html)
