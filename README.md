@@ -12,6 +12,6 @@ The complete report can be found [here](https://williamamartinez.github.io/ts_se
 
 Readers interested in the used scripts in R and python to achieve the proposed objectives can find the following documents:
 
-1. LULC classification using RF and SVM in python: a glance of static classification using sentinel 2 Imagery and extracted training sampling of Cos map 2015: [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/Classification_weighted_landcover.html)
+1. LULC classification using RF and SVM in python: a glance of static classification using sentinel 2 Imagery and extracted training sampling of Cos map 2015: [here](https://williamamartinez.github.io/ts_sentinel2/ToolPython/Classification_weighted_landcover.html)
 
 2. A brief introduction of the results of the classification performance using automatic training sample extraction from old maps for intra-annual LULC mapping at central of Portugal: [here](https://williamamartinez.github.io/ts_sentinel2/ToolR/UncertantyMaps.html)
