@@ -12,4 +12,4 @@ The complete report can be found [here]( https://williamamartinez.github.io/ts_s
 
 Moreover, this thesis had a focus on processing Sentinel 2 data products in Python and R.
 
-Readers interested in the used scripts in R to achieve the proposed objectives can be found here  [here]( https://williamamartinez.github.io/ts_sentinel2/Document/Thesis_index_wm.pdf)
+Readers interested in the used scripts in R to achieve the proposed objectives can be found [here]( https://williamamartinez.github.io/ts_sentinel2/ToolR/UncertantyMaps.html)
