@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-
 from osgeo import gdal, ogr
 import numpy as np
 import matplotlib.pyplot as plt
@@ -287,8 +285,6 @@ def pca_calculator(w):
     datasource = None
     return df_pc
 
-#=====================================================================
-=======
 
 from osgeo import gdal, ogr
 import numpy as np
@@ -576,6 +572,3 @@ def pca_calculator(w):
     df_pc = pd.concat([df_y,df_x_pc], axis = 1)
     datasource = None
     return df_pc
-
-#=====================================================================
->>>>>>> ac173c5f72d856c3a48e1b2c234e6bde1e2aa60f

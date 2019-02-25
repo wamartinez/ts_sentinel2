@@ -61,7 +61,6 @@ def import_data(path_shape):
     #returning object
     return(sp_obj)
 
-
 class random_selection:
     def __init__(self, dataset, prob, pivot):
         self.dataset = dataset
@@ -98,20 +97,11 @@ class random_selection:
             }
         return (sp_obj_train , sp_obj_test)
 #====================================
-<<<<<<< HEAD
-#maintainance
-=======
-
->>>>>>> ac173c5f72d856c3a48e1b2c234e6bde1e2aa60f
 class SvmModel():
     model_type = 'Support Vector Machine with linear Kernel'
     def fit_predict(self, X_train, y_train, X_test):
         print ('training svm...')
-<<<<<<< HEAD
         self.classifier = SVC(C=4, kernel = 'rbf',gamma= 0.25, probability=True)
-=======
-        self.classifier = SVC(C=1, kernel = 'rbf', gamma= 1, probability=True)
->>>>>>> ac173c5f72d856c3a48e1b2c234e6bde1e2aa60f
         self.classifier.fit(X_train, y_train)
         self.test_y_predicted = self.classifier.predict(X_test)
         self.probability_y = self.classifier.predict_proba(X_test)
@@ -203,12 +193,6 @@ def entropy_accumulation(dataset, clf, pivot, prob, number_simulations = 10):
         X_train = train["data"].iloc[:,1:].values
         #inste of calling the validation, I will import all the data for validation
         X_test = dataset["data"].iloc[:,1:].values
-<<<<<<< HEAD
-=======
-        #normalizing datasets
-        #normal =  Normalize()
-        #(X_train, X_test) = normal.normalize(X_train, X_test)
->>>>>>> ac173c5f72d856c3a48e1b2c234e6bde1e2aa60f
         #fitting model
         (label_pred , probabilities) =  clf.fit_predict(X_train,y_train, X_test)
         #calculaing entropies
@@ -226,7 +210,6 @@ def entropy_accumulation(dataset, clf, pivot, prob, number_simulations = 10):
     m = 1/(max_x-min_x)
     b = 1 - m * max_x
     entropies = entropies * m + b
-<<<<<<< HEAD
     return(entropies, entropies_df )
     print("done")
 
@@ -248,19 +231,5 @@ def entropy_rutines(train , clf, pivot):
     test1 = None
     return(result_entropies)
     #entropies_df = pd.DataFrame(entropies_stack)
-=======
-#==================================================
-#    label = dataset["data"][pivot].values
-#    for i in np.unique(label):
-#        ind = np.where(label == i)[0]
-#        x = entropies[ind]
-#        min_x = x.min()
-#        max_x = x.max()
-#        m = 1/(max_x-min_x)
-#        b = 1 - m * max_x
-#        x_standard = x * m + b
-#        entropies[ind] = x_standard
-#==================================================
     return(entropies, entropies_df )
     print("done")
->>>>>>> ac173c5f72d856c3a48e1b2c234e6bde1e2aa60f
