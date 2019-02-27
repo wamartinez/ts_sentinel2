@@ -1,0 +1,70 @@
+---
+title: "Animation Maps"
+author: "William Martinez"
+date: "25 de febrero de 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Classification Seasonal composites
+
+```{r setup, include=FALSE}
+library(raster)
+library(rasterVis)
+library(magick)
+library(classInt)
+library(animation)
+require(installr)
+#install.ImageMagick()
+
+#importinf images
+file = 'D:\\TESISMASTER\\IMAGES\\TO_PROCESS_10m\\Prediction\\PREDICTION\\COMP20\\Predictions'
+read_raster = function(x){
+  y = raster::raster(paste0(file,"\\",x))
+  return(y)
+}
+list_raster = lapply(list.files(file),read_raster)
+rasters_stack = raster::brick(list_raster)
+pal9 <- c("#641A77", "#33A02C", "#000000",  "#FFFF00", "#FF0000", "#FF00FF","#000046" , "#A6CEE3","#800000")
+
+label_classes = c("Eucalyptus_trees","Herbaceous","Sealed", "Non_vegetated","Holm_and_Cork_Trees","Coniferous_trees", "Wetlands",
+"Water","Bushes_and_shrubs" )
+
+#colorkey=list(at=c(1:9), labels=label_classes)
+
+saveGIF({
+  for(i in c(1:nlayers(rasters_stack))){
+    l <- levelplot(rasters_stack[[i]], margin=FALSE,at=c(0:9), col.regions = pal9,
+                   main = rasters_stack[[i]]@data@names, maxpixels = 20e5)
+    plot(l)
+  }
+}, interval=5, movie.name="animation5.gif")
+#ani.options(convert = 'C:\\Program Files\\ImageMagick-6.9.0-Q16\\convert.exe')
+```
+
+
+# False color
+
+```{r setup, include=FALSE}
+#importinf images
+file = 'D:\\TESISMASTER\\IMAGES\\TO_PROCESS_10m\\Prediction\\PREDICTION\\COMP20\\Compositions'
+read_raster = function(x){
+  y = raster::raster(paste0(file,"\\",x))
+  return(y)
+}
+list_raster_fc = lapply(list.files(file),read_raster)
+
+saveGIF({
+  for(i in c(1:nlayers(list_raster_fc))){
+    l2 <-raster::plotRGB(brick(list_raster_fc[[i]]),stretch='hist')
+    plot(l2)
+  }
+}, interval=5, movie.name="animation5.gif")
+```
+
+
+
+

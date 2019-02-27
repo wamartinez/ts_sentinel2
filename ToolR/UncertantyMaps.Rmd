@@ -367,8 +367,7 @@ print(p2)
 ```
 
 These results questioned if the implementation of the iterative learning procedure was not viable for any data, or the results corresponded to a particular scenario where the methodology was not necessary. To conduct this question, we decided to inject a specific level of noise in addition to the inherent error associated with the automatic selection of labels using an old map. With 30% of noise over each class, we performed the same above process. After new iterations, the strategy for refining data started benefiting the classification. According to Figure following graphic, the OA for the margins of TA and TB started increasing gradually as we
-approached to the 30% of data removed. The overall accuracy for TA increased on average from 0.7 to 0.73. Similarly, for TB the OA increased from 0.55 to 0.58. After the 30% of removed samples, our model started losing the ability to generalize, and therefore produce results with lower accuracies.
-
+approached to the 30% of data removed. The overall accuracy for TA increased on average from 0.7 to 0.73. Similarly, for TB the OA increased from 0.55 to 0.58. After the 30% of removed samples, our model started losing the ability to generalize, and therefore produce results with lower accuracies. 
 ```{r , warning=FALSE}
 #data frame with the results without filter
 library(ggplot2)
@@ -456,13 +455,17 @@ map_time
 
 This thesis aimed to answer one research question about the benefit of the integration of training samples extracted from old maps for automatic production of intra-annual land cover mapping. To do so, we proposed to explore the usability of training samples obtained from the LULC national map of Portugal (COS) to automatize the construction of training data, that usually is collected manually, in the supervised classification of singular and BAP composites of Sentinel 2. In this context, this thesis implemented different strategies to evaluate the use of the training data with version 2015 in the classification of images of 2017. Generally, the performance of image classification depended on multiple factors, where the nature of the training samples, the classification performance, the properties of the classifiers and quality of the composites were conducted in this thesis. 
 
-Firstly, after attempts for a refinement of the training data without positive impact in the increase of the OA of the classification of singular and seasonal composites of 2017, a simulation of the classification performance under different levels of noise in Cos map allowed us to infer that Cos map is a good source where to extract training data for classification. The still poor accuracy in the results and overestimation of herbaceous in the LULC maps may be related to other factors such as representativeness of the sampling per class, the number of classes to discriminate, the pixel-based approach and the spectral features that we used for the classification of images where the woody class was dominant. 
+Firstly, after attempts for a refinement of the training data without positive impact in the increase of the OA of the classification of singular and seasonal composites of 2017, a simulation of the classification performance under different levels of noise in Cos map allowed us to infer that Cos map is a good source where to extract training data for making automatic classification. The still poor accuracy in the results and overestimation of herbaceous in the LULC maps may be related to other factors such as representativeness of the sampling per class, the number of classes to discriminate, the pixel-based approach and the spectral features that we used for the classification of images where the woody class was dominant. 
 
-Secondly, the application of RF and SVM was crucial in the image classification using training data extracted from old maps due to their desirable propertiesof robustness in the presence of mislabeled data. Moreover, the stability in the estimation of the parameters of both classifiers after different levels of noise also led us to infer the balance of the parametrization for replication of intra-annual
-maps.
+Secondly, the application of RF and SVM was crucial in the image classification using training data extracted from old maps due to their desirable properties of robustness in the presence of mislabeled data. Moreover, the stability in the estimation of the parameters of both classifiers after different levels of noise also led us to infer the stability in the parametrization of RF for replication of intra-annual
+maps. We cannot generlize a better perfomance of SVM over RF. However, using Sentinel 2 imagery at central of portugal SVM ouperformed the results of RF in average sores of 2.
 
 Finally, the free-cloud and phenological maximization of BAP composites become in a consistent and efficient input for the production of seasonal LULC mapping with 10 meters of spatial resolution. Its construction is computationally fast, simple and can be extended to different intra-annual frequencies besides the seasonal one, depending on the time frame of analysis.
 
+
+# Recomendations
+
+I must be noted, that entropy measurement value may have issues when the pixel is composed fractionally for different classes under study. Therefore, we recommend using informativeness not as a measurement to remove data, instead of, as a measurement to update training data.
 
 
 
