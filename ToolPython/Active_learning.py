@@ -13,7 +13,7 @@ import pandas as pd
 
 #====================================
 
-#importing shapefile
+#importing shapefile all
 
 def import_data(path_shape):
     driver = ogr.GetDriverByName("ESRI Shapefile")
